@@ -75,7 +75,7 @@ export const THEMES: Record<ThemeName, Tokens> = {
     card: "#FFFFFF",
     widget: "#FFFFFF",
     ink: "#0A0A0A",
-    dim: "rgba(10,10,10,0.55)",
+    dim: "rgba(10,10,10,0.62)",
     faint: "rgba(10,10,10,0.12)",
     red: "#E11A1B",
     dot: "#2B2B30",

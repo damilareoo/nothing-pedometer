@@ -270,9 +270,11 @@ function Stat({ label, value, sub, t }: { label: string; value: string; sub?: st
 }
 
 /** Strava route redrawn as a Nothing dot-matrix trace with a live runner. */
-function RouteMap({ reduced, t }: { reduced: boolean; t: Tokens }) {
+function RouteMap({ reduced, t, privateZones }: { reduced: boolean; t: Tokens; privateZones: boolean }) {
   const pathRef = useRef<SVGPathElement>(null);
   const travelledRef = useRef<SVGPathElement>(null);
+  const zoneARef = useRef<SVGPathElement>(null);
+  const zoneBRef = useRef<SVGPathElement>(null);
   const runnerRef = useRef<SVGCircleElement>(null);
   const haloRef = useRef<SVGCircleElement>(null);
   const ringRefs = useRef<(SVGGElement | null)[]>([]);
@@ -285,11 +287,22 @@ function RouteMap({ reduced, t }: { reduced: boolean; t: Tokens }) {
   useEffect(() => {
     const p = pathRef.current;
     const travelled = travelledRef.current;
-    if (!p || !travelled) return;
+    const zoneA = zoneARef.current;
+    const zoneB = zoneBRef.current;
+    if (!p || !travelled || !zoneA || !zoneB) return;
     const L = p.getTotalLength();
     const at = (f: number) => {
       const pt = p.getPointAtLength(L * Math.min(1, Math.max(0, f)));
       return { x: pt.x, y: pt.y };
+    };
+    /* A static subpath between two fractions — used for privacy masking. */
+    const section = (a: number, b: number, steps = 24) => {
+      let d = "";
+      for (let i = 0; i <= steps; i++) {
+        const pt = at(a + ((b - a) * i) / steps);
+        d += `${i === 0 ? "M" : "L"}${pt.x.toFixed(1)},${pt.y.toFixed(1)}`;
+      }
+      return d;
     };
     /* The travelled trace: a subpath sampled from 0 to the live fraction. */
     const paint = (f: number) => {
@@ -312,6 +325,9 @@ function RouteMap({ reduced, t }: { reduced: boolean; t: Tokens }) {
     const s = at(0);
     const e = at(0.999);
     setEnds({ sx: s.x, sy: s.y, ex: e.x, ey: e.y });
+    /* Privacy mask: card-ink dots erase the travelled trace near home. */
+    zoneA.setAttribute("d", privateZones ? section(0, 0.08) : "");
+    zoneB.setAttribute("d", privateZones ? section(0.92, 1) : "");
     if (reduced) {
       paint(0.55);
       return;
@@ -327,7 +343,10 @@ function RouteMap({ reduced, t }: { reduced: boolean; t: Tokens }) {
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [reduced]);
+  }, [reduced, privateZones]);
+
+  /* Knockout halo so type never clashes with the trace. */
+  const halo = { paintOrder: "stroke" as const, stroke: t.card, strokeWidth: 5 };
 
   return (
     <svg viewBox="0 0 360 250" className="h-auto w-full" role="img" aria-label="5.2 kilometre run route as a dotted trace">
@@ -340,19 +359,29 @@ function RouteMap({ reduced, t }: { reduced: boolean; t: Tokens }) {
       <path ref={pathRef} d={ROUTE} fill="none" stroke={t.faint} strokeWidth={5} strokeLinecap="round" strokeDasharray="0.1 9" />
       {/* the truth: only what has actually been run */}
       <path ref={travelledRef} d="" fill="none" stroke={t.dot} strokeWidth={5} strokeLinecap="round" strokeDasharray="0.1 9" />
+      {/* privacy mask: card ink erases the trace near home */}
+      <path ref={zoneARef} d="" fill="none" stroke={t.card} strokeWidth={7} strokeLinecap="round" strokeDasharray="0.1 9.5" />
+      <path ref={zoneBRef} d="" fill="none" stroke={t.card} strokeWidth={7} strokeLinecap="round" strokeDasharray="0.1 9.5" />
       {marks.map((m, i) => (
         <g key={i} ref={(el) => { ringRefs.current[i] = el; }}>
           <circle cx={m.x} cy={m.y} r={7} fill={t.card} stroke={t.dot} strokeWidth={2} opacity={0.9} />
-          <text x={m.x} y={m.y - 12} textAnchor="middle" fill={t.dot} fontSize={10} fontFamily="monospace" letterSpacing={1}>
+          <text x={m.x} y={m.y - 12} textAnchor="middle" fill={t.dot} fontSize={10} fontFamily="monospace" letterSpacing={1} {...halo}>
             {`KM${i + 1}`}
           </text>
         </g>
       ))}
-      <circle cx={ends.sx} cy={ends.sy} r={5} fill={t.dot} />
-      <text x={ends.sx} y={ends.sy - 12} textAnchor="middle" fill={t.dot} fontSize={10} fontFamily="monospace" letterSpacing={1}>
-        START
-      </text>
-      <circle cx={ends.ex} cy={ends.ey} r={5} fill={t.red} />
+      <g opacity={privateZones ? 0.15 : 1}>
+        <circle cx={ends.sx} cy={ends.sy} r={5} fill={t.dot} />
+        <text x={ends.sx} y={ends.sy - 12} textAnchor="middle" fill={t.dot} fontSize={10} fontFamily="monospace" letterSpacing={1} {...halo}>
+          START
+        </text>
+        <circle cx={ends.ex} cy={ends.ey} r={5} fill={t.red} />
+      </g>
+      {privateZones && (
+        <text x={ends.sx} y={ends.sy + 20} textAnchor="middle" fill={t.dim} fontSize={9} fontFamily="monospace" letterSpacing={2}>
+          HOME ZONE HIDDEN
+        </text>
+      )}
       <circle ref={haloRef} r={11} fill="none" stroke={t.red} strokeWidth={1.5} opacity={0.5} />
       <circle ref={runnerRef} r={4.5} fill={t.red} stroke={t.card} strokeWidth={1.5} />
     </svg>
@@ -559,6 +588,9 @@ function DetailScreen({
             <p className="mt-2.5 font-mono text-[10px] tracking-[0.16em]" style={{ color: t.dim }}>
               <span style={{ color: t.ink }}>73%</span> OF 10,000 GOAL · 2,716 TO GO
             </p>
+            <p className="mt-1.5 font-mono text-[9px] tracking-[0.16em]" style={{ color: t.dim }}>
+              COUNTED ON-DEVICE · SYNCED JUST NOW
+            </p>
           </div>
         </Rise>
 
@@ -586,6 +618,9 @@ function DetailScreen({
               <ArrowRight size={16} />
             </span>
           </motion.button>
+          <p className="pt-3 text-center font-mono text-[9px] tracking-[0.2em]" style={{ color: t.dim }}>
+            EVERY STAT FREE · NOTHING UPLOADED
+          </p>
         </Rise>
       </div>
     </motion.div>
@@ -594,7 +629,7 @@ function DetailScreen({
 
 /* ---------------------------------- run ------------------------------------ */
 
-function RunScreen({ onBack, onShare, t }: { onBack: () => void; onShare: () => void; t: Tokens }) {
+function RunScreen({ onBack, onShare, privacy, setPrivacy, t }: { onBack: () => void; onShare: () => void; privacy: boolean; setPrivacy: (v: boolean) => void; t: Tokens }) {
   const reduced = useReducedMotion();
   const max = Math.max(...ELEV);
   return (
@@ -640,7 +675,7 @@ function RunScreen({ onBack, onShare, t }: { onBack: () => void; onShare: () => 
 
         <Rise index={0} className="px-4 pt-3">
           <div className="overflow-hidden rounded-[20px]" style={{ background: t.card, border: `1px solid ${t.edge}`, boxShadow: t.pop }}>
-            <RouteMap reduced={reduced} t={t} />
+            <RouteMap reduced={reduced} t={t} privateZones={privacy} />
             <div className="flex items-center justify-between border-t px-4 py-2.5 font-mono text-[9px] tracking-[0.18em]" style={{ borderColor: t.faint, color: t.dim }}>
               <span>TRACE</span>
               <span>
@@ -652,13 +687,45 @@ function RunScreen({ onBack, onShare, t }: { onBack: () => void; onShare: () => 
           </div>
         </Rise>
 
-        <Rise index={1} className="grid grid-cols-3 gap-2.5 px-4 pt-2.5">
+        <Rise index={1} className="px-4 pt-2.5">
+          <button
+            type="button"
+            onClick={() => setPrivacy(!privacy)}
+            aria-pressed={privacy}
+            aria-label="Privacy zone: hide start and finish near home"
+            className="flex w-full items-center justify-between rounded-[20px] px-[18px] py-3.5"
+            style={{ background: t.card, border: `1px solid ${t.edge}`, boxShadow: t.pop }}
+          >
+            <span className="text-left">
+              <span className="block text-[13px] font-medium" style={{ color: t.ink }}>
+                Privacy zone {privacy ? "on" : "off"}
+              </span>
+              <span className="block pt-0.5 font-mono text-[9px] tracking-[0.16em]" style={{ color: t.dim }}>
+                HIDES START + FINISH NEAR HOME
+              </span>
+            </span>
+            <span
+              className="flex h-7 w-12 shrink-0 items-center rounded-full p-[2px]"
+              style={{ background: privacy ? t.dot : t.faint }}
+              aria-hidden
+            >
+              <motion.span
+                className="block h-6 w-6 rounded-full"
+                style={{ background: privacy ? t.card : t.dim }}
+                animate={{ x: privacy ? 20 : 0 }}
+                transition={{ duration: DUR.micro, ease: EASE_OUT }}
+              />
+            </span>
+          </button>
+        </Rise>
+
+        <Rise index={2} className="grid grid-cols-3 gap-2.5 px-4 pt-2.5">
           <Stat label="Time" value={RUN.time} t={t} />
           <Stat label="Pace" value={RUN.pace} sub="/KM" t={t} />
           <Stat label="Energy" value={RUN.kcal} sub="KCAL" t={t} />
         </Rise>
 
-        <Rise index={2} className="px-4 pt-2.5">
+        <Rise index={3} className="px-4 pt-2.5">
           <div className="rounded-[20px] p-[18px]" style={{ background: t.card, border: `1px solid ${t.edge}`, boxShadow: t.pop }}>
             <div className="flex items-baseline justify-between">
               <p className={SANS_LABEL} style={{ color: t.dim }}>
@@ -680,7 +747,7 @@ function RunScreen({ onBack, onShare, t }: { onBack: () => void; onShare: () => 
           </div>
         </Rise>
 
-        <Rise index={3} className="px-4 pt-2.5">
+        <Rise index={4} className="px-4 pt-2.5">
           <div className="overflow-hidden rounded-[20px]" style={{ background: t.card, border: `1px solid ${t.edge}`, boxShadow: t.pop }}>
             {SPLITS.map((s, i) => (
               <div
@@ -705,11 +772,11 @@ function RunScreen({ onBack, onShare, t }: { onBack: () => void; onShare: () => 
 type ShareTarget = "sheet" | "x" | "instagram" | "whatsapp";
 
 /** The artifact: what actually travels when a run is shared. Always black. */
-function ShareCard() {
+function ShareCard({ privateZones }: { privateZones: boolean }) {
   return (
     <div className="rounded-[18px] bg-[#0B0B0D] p-4">
       <p className="font-mono text-[9px] uppercase tracking-[0.22em]" style={{ color: "rgba(255,255,255,0.55)" }}>
-        Morning run · 06:42
+        Morning run · 06:42{privateZones ? " · HOME HIDDEN" : ""}
       </p>
       <div className="mt-1.5">
         <DotText text="5.2" dot={3.4} pitch={10.5} color="#fff" dimOpacity={0.09} label="5.2 kilometres" />
@@ -717,8 +784,8 @@ function ShareCard() {
       <p className="mt-1 font-mono text-[10px] tracking-[0.24em] text-white">KILOMETRES</p>
       <svg viewBox="0 0 360 250" className="mt-2 h-auto w-full" role="img" aria-label="Run route">
         <path d={ROUTE} fill="none" stroke="rgba(255,255,255,0.9)" strokeWidth={6} strokeLinecap="round" strokeDasharray="0.1 10" />
-        <circle cx={44} cy={200} r={7} fill="#fff" />
-        <circle cx={96} cy={200} r={7} fill="#E11A1B" />
+        <circle cx={44} cy={200} r={7} fill="#fff" opacity={privateZones ? 0.2 : 1} />
+        <circle cx={96} cy={200} r={7} fill="#E11A1B" opacity={privateZones ? 0.2 : 1} />
       </svg>
       <div className="mt-2 flex justify-between font-mono text-[11px] text-white">
         <span>32:14</span>
@@ -808,7 +875,7 @@ function ShareSheet({ t, onPick, onClose }: { t: Tokens; onPick: (p: Exclude<Sha
   );
 }
 
-function XPost() {
+function XPost({ privacy }: { privacy: boolean }) {
   return (
     <div className="rounded-[20px] border border-white/10 bg-black p-4">
       <div className="flex items-center gap-2.5">
@@ -824,7 +891,7 @@ function XPost() {
       </div>
       <p className="pt-2.5 text-[13px] text-white">Morning loop: 5.2 km in 32:14.</p>
       <div className="pt-2.5">
-        <ShareCard />
+        <ShareCard privateZones={privacy} />
       </div>
       <div className="flex gap-6 pt-3 font-mono text-[10px]" style={{ color: "rgba(255,255,255,0.5)" }}>
         <span>12</span>
@@ -835,26 +902,26 @@ function XPost() {
   );
 }
 
-function StoryPreview() {
+function StoryPreview({ privacy }: { privacy: boolean }) {
   return (
     <div className="overflow-hidden rounded-[20px]" style={{ background: "linear-gradient(170deg, #1A1C26 0%, #3A2E38 55%, #101014 100%)", aspectRatio: "9/16" }}>
       <div className="mx-auto mt-2 h-[3px] w-16 rounded-full bg-white/40" />
       <div className="px-4 pt-6">
-        <ShareCard />
+        <ShareCard privateZones={privacy} />
       </div>
       <p className="px-4 pt-4 font-mono text-[11px] tracking-[0.2em] text-white">MORNING LOOP — 5.2 KM</p>
     </div>
   );
 }
 
-function WAPreview() {
+function WAPreview({ privacy }: { privacy: boolean }) {
   return (
     <div className="rounded-[20px] p-4" style={{ background: "#0B141A" }}>
       <p className="text-center font-mono text-[9px] tracking-[0.18em]" style={{ color: "rgba(255,255,255,0.45)" }}>
         TODAY
       </p>
       <div className="ml-auto mt-2 w-[94%] rounded-[14px] rounded-tr-[4px] p-2" style={{ background: "#005C4B" }}>
-        <ShareCard />
+        <ShareCard privateZones={privacy} />
         <p className="px-1 pb-0.5 pt-1.5 text-[12px] text-white">Morning loop done. 5.2 km in 32:14.</p>
         <p className="px-1 text-right font-mono text-[9px]" style={{ color: "rgba(255,255,255,0.7)" }}>
           06:47 ✓✓
@@ -864,7 +931,7 @@ function WAPreview() {
   );
 }
 
-function SharePreview({ platform, t, onBack }: { platform: Exclude<ShareTarget, "sheet">; onBack: () => void; t: Tokens }) {
+function SharePreview({ platform, privacy, t, onBack }: { platform: Exclude<ShareTarget, "sheet">; privacy: boolean; onBack: () => void; t: Tokens }) {
   const reduced = useReducedMotion();
   const [posted, setPosted] = useState(false);
   useEffect(() => {
@@ -905,9 +972,9 @@ function SharePreview({ platform, t, onBack }: { platform: Exclude<ShareTarget, 
         </button>
       </div>
       <div className="no-scrollbar flex-1 overflow-y-auto px-4 pb-8 pt-4">
-        {platform === "x" && <XPost />}
-        {platform === "instagram" && <StoryPreview />}
-        {platform === "whatsapp" && <WAPreview />}
+        {platform === "x" && <XPost privacy={privacy} />}
+        {platform === "instagram" && <StoryPreview privacy={privacy} />}
+        {platform === "whatsapp" && <WAPreview privacy={privacy} />}
       </div>
     </motion.div>
   );
@@ -926,6 +993,7 @@ export function PedometerExperience() {
   const [visits, setVisits] = useState(0);
   const [theme, setTheme] = useState<ThemeName>("dark");
   const [share, setShareState] = useState<null | ShareTarget>(null);
+  const [privacy, setPrivacy] = useState(true);
   const reduced = useReducedMotion();
   const now = useNow();
   const t = THEMES[theme];
@@ -1010,7 +1078,7 @@ export function PedometerExperience() {
           </AnimatePresence>
           <AnimatePresence>
             {stage === "run" && (
-              <RunScreen key="run" onBack={() => setStage("detail")} onShare={() => setShare("sheet")} t={t} />
+              <RunScreen key="run" onBack={() => setStage("detail")} onShare={() => setShare("sheet")} privacy={privacy} setPrivacy={setPrivacy} t={t} />
             )}
           </AnimatePresence>
           <AnimatePresence>
@@ -1018,7 +1086,7 @@ export function PedometerExperience() {
               <ShareSheet key="sheet" t={t} onPick={(p) => setShare(p === "copy" ? "sheet" : p)} onClose={() => setShare(null)} />
             )}
             {stage === "run" && share !== null && share !== "sheet" && (
-              <SharePreview key={share} platform={share} onBack={() => setShare("sheet")} t={t} />
+              <SharePreview key={share} platform={share} onBack={() => setShare("sheet")} privacy={privacy} t={t} />
             )}
           </AnimatePresence>
         </div>
