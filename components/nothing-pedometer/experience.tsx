@@ -240,45 +240,57 @@ function Stat({ label, value, sub, t }: { label: string; value: string; sub?: st
 /** Strava route redrawn as a Nothing dot-matrix trace with a live runner. */
 function RouteMap({ reduced, t }: { reduced: boolean; t: Tokens }) {
   const pathRef = useRef<SVGPathElement>(null);
+  const travelledRef = useRef<SVGPathElement>(null);
   const runnerRef = useRef<SVGCircleElement>(null);
   const haloRef = useRef<SVGCircleElement>(null);
+  const ringRefs = useRef<(SVGGElement | null)[]>([]);
   const [marks, setMarks] = useState<{ x: number; y: number }[]>([]);
   const [ends, setEnds] = useState({ sx: 44, sy: 200, ex: 96, ey: 200 });
 
+  const FRACTIONS = [0.2, 0.4, 0.6, 0.8];
+  const SAMPLES = 160;
+
   useEffect(() => {
     const p = pathRef.current;
-    if (!p) return;
-    const measure = () => {
-      const L = p.getTotalLength();
-      const at = (f: number) => {
-        const pt = p.getPointAtLength(L * f);
-        return { x: pt.x, y: pt.y };
-      };
-      setMarks([0.2, 0.4, 0.6, 0.8].map(at));
-      const s = at(0);
-      const e = at(0.999);
-      setEnds({ sx: s.x, sy: s.y, ex: e.x, ey: e.y });
-      return { at };
+    const travelled = travelledRef.current;
+    if (!p || !travelled) return;
+    const L = p.getTotalLength();
+    const at = (f: number) => {
+      const pt = p.getPointAtLength(L * Math.min(1, Math.max(0, f)));
+      return { x: pt.x, y: pt.y };
     };
+    /* The travelled trace: a subpath sampled from 0 to the live fraction. */
+    const paint = (f: number) => {
+      let d = "";
+      for (let i = 0; i <= SAMPLES; i++) {
+        const pt = at((f * i) / SAMPLES);
+        d += `${i === 0 ? "M" : "L"}${pt.x.toFixed(1)},${pt.y.toFixed(1)}`;
+      }
+      travelled.setAttribute("d", d);
+      const tip = at(f);
+      runnerRef.current?.setAttribute("cx", String(tip.x));
+      runnerRef.current?.setAttribute("cy", String(tip.y));
+      haloRef.current?.setAttribute("cx", String(tip.x));
+      haloRef.current?.setAttribute("cy", String(tip.y));
+      FRACTIONS.forEach((fr, i) => {
+        ringRefs.current[i]?.setAttribute("opacity", fr <= f ? "1" : "0.25");
+      });
+    };
+    setMarks(FRACTIONS.map(at));
+    const s = at(0);
+    const e = at(0.999);
+    setEnds({ sx: s.x, sy: s.y, ex: e.x, ey: e.y });
     if (reduced) {
-      const { at } = measure();
-      const mid = at(0.55);
-      runnerRef.current?.setAttribute("cx", String(mid.x));
-      runnerRef.current?.setAttribute("cy", String(mid.y));
-      haloRef.current?.setAttribute("cx", String(mid.x));
-      haloRef.current?.setAttribute("cy", String(mid.y));
+      paint(0.55);
       return;
     }
-    const { at } = measure();
     let raf = 0;
     const t0 = performance.now();
-    const LOOP = 7000;
+    const ADVANCE = 7500;
+    const DWELL = 1500;
     const tick = (now: number) => {
-      const pt = at(((now - t0) % LOOP) / LOOP);
-      runnerRef.current?.setAttribute("cx", String(pt.x));
-      runnerRef.current?.setAttribute("cy", String(pt.y));
-      haloRef.current?.setAttribute("cx", String(pt.x));
-      haloRef.current?.setAttribute("cy", String(pt.y));
+      const elapsed = (now - t0) % (ADVANCE + DWELL);
+      paint(Math.min(1, elapsed / ADVANCE));
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
@@ -292,10 +304,12 @@ function RouteMap({ reduced, t }: { reduced: boolean; t: Tokens }) {
           <circle key={`${r}-${c}`} cx={10 + c * 20} cy={8 + r * 21} r={0.8} fill={t.faint} />
         )),
       )}
-      <path d={ROUTE} fill="none" stroke={t.faint} strokeWidth={5} strokeLinecap="round" strokeDasharray="0.1 9" />
-      <path ref={pathRef} d={ROUTE} fill="none" stroke={t.dot} strokeWidth={5} strokeLinecap="round" strokeDasharray="0.1 9" />
+      {/* the plan: full route, dim */}
+      <path ref={pathRef} d={ROUTE} fill="none" stroke={t.faint} strokeWidth={5} strokeLinecap="round" strokeDasharray="0.1 9" />
+      {/* the truth: only what has actually been run */}
+      <path ref={travelledRef} d="" fill="none" stroke={t.dot} strokeWidth={5} strokeLinecap="round" strokeDasharray="0.1 9" />
       {marks.map((m, i) => (
-        <g key={i}>
+        <g key={i} ref={(el) => { ringRefs.current[i] = el; }}>
           <circle cx={m.x} cy={m.y} r={7} fill={t.card} stroke={t.dot} strokeWidth={2} opacity={0.9} />
           <text x={m.x} y={m.y - 12} textAnchor="middle" fill={t.dot} fontSize={10} fontFamily="monospace" letterSpacing={1}>
             {`KM${i + 1}`}
