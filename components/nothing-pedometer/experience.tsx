@@ -55,7 +55,7 @@ const ROUTE =
   "M 44 200 C 44 150 80 130 116 138 C 152 146 156 106 194 100 C 232 94 246 126 284 120 C 316 115 328 142 314 168 C 300 194 270 188 262 208 C 256 224 230 232 210 224 C 180 240 140 238 118 224 C 104 215 96 208 96 200";
 
 const MICRO = "font-mono text-[10px] uppercase tracking-[0.22em]";
-const SANS_LABEL = "text-[12px] font-medium";
+const SANS_LABEL = "text-[14px] font-medium";
 
 /* ---------------------------------- hooks --------------------------------- */
 
@@ -436,11 +436,11 @@ function ClockFace({ time, t }: { time: string; t: Tokens }) {
 /** Date + weather squircle, dot-matrix capitals exactly like the device. */
 function DateCard({ weekday, dayMonth, t }: { weekday: string; dayMonth: string; t: Tokens }) {
   return (
-    <div className="flex flex-1 flex-col justify-center gap-[8px] rounded-[24px] p-4" style={{ background: t.widget, border: `1px solid ${t.edge}`, boxShadow: t.pop }}>
-      <Matrix t={t} text={weekday} dot={2.2} pitch={5.4} />
-      <Matrix t={t} text={dayMonth} dot={2.2} pitch={5.4} />
-      <Matrix t={t} text="PARTLY SUNNY" dot={1.2} pitch={2.8} />
-      <Matrix t={t} text="25°" dot={2.2} pitch={5.4} />
+    <div className="flex flex-1 flex-col justify-center gap-[8px] rounded-[28px] p-4" style={{ background: t.widget, border: `1px solid ${t.edge}`, boxShadow: t.pop }}>
+      <Matrix t={t} text={weekday} dot={1.15} pitch={2.6} />
+      <Matrix t={t} text={dayMonth} dot={1.15} pitch={2.6} />
+      <Matrix t={t} text="PARTLY SUNNY" dot={1} pitch={2.3} />
+      <Matrix t={t} text="25°" dot={1.15} pitch={2.6} />
     </div>
   );
 }
@@ -459,20 +459,20 @@ function PedoWidget({ onOpen, shellId, t }: { onOpen: () => void; shellId?: stri
       whileTap={{ scale: 0.96 }}
       transition={{ duration: DUR.morph, ease: EASE_EMPHASIZED }}
       aria-label="Open pedometer details: 162 total today, 7,442 seven-day average"
-      className="block w-[184px] rounded-[24px] p-[15px] text-left"
+      className="block w-[184px] rounded-[28px] p-[15px] text-left"
       style={{ background: t.widget, border: `1px solid ${t.edge}`, boxShadow: t.pop }}
     >
-      <Matrix t={t} text="162" dot={2.1} pitch={5.2} label="162" />
+      <Matrix t={t} text="162" dot={1.8} pitch={4.1} label="162" />
       <span className={`${row} mt-[7px]`}>
-        <Matrix t={t} text="TOTAL TODAY" dot={0.75} pitch={1.65} />
+        <Matrix t={t} text="TOTAL TODAY" dot={0.7} pitch={1.6} />
         <span className="font-mono text-[10px]" style={{ color: t.dim }}>
           1%
         </span>
       </span>
       <span className="my-[11px] block h-px" style={{ background: t.faint }} aria-hidden />
-      <Matrix t={t} text="7,442" dot={2.1} pitch={5.2} label="7,442" />
+      <Matrix t={t} text="7,442" dot={1.8} pitch={4.1} label="7,442" />
       <span className={`${row} mt-[7px]`}>
-        <Matrix t={t} text="7-DAY AVERAGE" dot={0.75} pitch={1.65} />
+        <Matrix t={t} text="7-DAY AVERAGE" dot={0.7} pitch={1.6} />
         <span className="font-mono text-[10px]" style={{ color: t.dim }}>
           74%
         </span>
@@ -572,7 +572,7 @@ function DetailScreen({
             <ChevronLeft size={20} />
           </button>
         </div>
-        <h1 className="px-5 pt-2 text-[34px] leading-none" style={{ fontFamily: t.serif, color: t.ink }}>
+        <h1 className="px-5 pt-2 text-[46px] leading-none" style={{ fontFamily: t.serif, color: t.ink }}>
           Today
         </h1>
         <p className={`${MICRO} px-5 pt-2`} style={{ color: t.dim }}>
@@ -581,7 +581,7 @@ function DetailScreen({
 
         <Rise index={0} className="px-4 pt-4">
           <div className="rounded-[20px] p-[18px]" style={{ background: t.card, border: `1px solid ${t.edge}`, boxShadow: t.pop }}>
-            <Matrix t={t} text={steps.toLocaleString("en-US")} dot={4} pitch={10.5} label={`${steps} steps`} />
+            <Matrix t={t} text={steps.toLocaleString("en-US")} dot={3.2} pitch={8} label={`${steps} steps`} />
             <div className="mt-3.5">
               <DottedLine frac={STEPS / GOAL} total={32} t={t} />
             </div>
@@ -662,7 +662,7 @@ function RunScreen({ onBack, onShare, privacy, setPrivacy, t }: { onBack: () => 
             SHARE
           </button>
         </div>
-        <h1 className="px-5 pt-2 text-[34px] leading-none" style={{ fontFamily: t.serif, color: t.ink }}>
+        <h1 className="px-5 pt-2 text-[46px] leading-none" style={{ fontFamily: t.serif, color: t.ink }}>
           Morning run
         </h1>
         <p className={`${MICRO} px-5 pt-2`} style={{ color: t.dim }}>
@@ -670,7 +670,7 @@ function RunScreen({ onBack, onShare, privacy, setPrivacy, t }: { onBack: () => 
         </p>
 
         <div className="px-4 pt-4">
-          <Matrix t={t} text={RUN.dist} dot={4.4} pitch={12} label={`${RUN.dist} kilometres`} />
+          <Matrix t={t} text={RUN.dist} dot={2.6} pitch={6.5} label={`${RUN.dist} kilometres`} />
         </div>
 
         <Rise index={0} className="px-4 pt-3">
