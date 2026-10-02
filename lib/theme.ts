@@ -59,7 +59,7 @@ export const THEMES: Record<ThemeName, Tokens> = {
     red: "#E11A1B",
     dot: "#FFFFFF",
     dotScale: 1,
-    unlit: 0.09,
+    unlit: 0.05,
     wallpaper:
       "radial-gradient(120% 90% at 85% 0%, #343B52 0%, transparent 55%), radial-gradient(110% 85% at 90% 55%, #4A3440 0%, transparent 60%), radial-gradient(90% 70% at 8% 100%, #83838B 0%, transparent 55%), #101014",
     dock: "#1B1A1F",

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { DUR, EASE_OUT, useReducedMotion } from "@/lib/motion";
 import { THEMES, type ThemeName, type Tokens } from "@/lib/theme";
+import { ArrowRight, CameraIcon, ChevronLeft, GearIcon, MessageIcon, PhoneIcon, SearchIcon } from "./icons";
 import { DotText } from "./dot-matrix";
 
 /**
@@ -409,19 +410,19 @@ function Dock({ t }: { t: Tokens }) {
   return (
     <div className="mt-auto px-7 pb-2">
       <div className="grid grid-cols-4 gap-4">
-        {["PHO", "MSG", "CAM", "SET"].map((a) => (
-          <div key={a} className="flex items-center justify-center rounded-full" style={{ background: t.dock, border: `1px solid ${t.edge}`, boxShadow: t.pop, aspectRatio: "1" }}>
-            <span className="font-mono text-[9px] tracking-[0.18em]" style={{ color: t.dim }}>
-              {a}
-            </span>
+        {[
+          { id: "phone", Icon: PhoneIcon },
+          { id: "messages", Icon: MessageIcon },
+          { id: "camera", Icon: CameraIcon },
+          { id: "settings", Icon: GearIcon },
+        ].map(({ id, Icon }) => (
+          <div key={id} className="flex items-center justify-center rounded-full" style={{ background: t.dock, border: `1px solid ${t.edge}`, boxShadow: t.pop, aspectRatio: "1", color: t.dim }}>
+            <Icon size={22} />
           </div>
         ))}
       </div>
-      <div className="mt-3 flex items-center gap-2.5 rounded-full px-4 py-3" style={{ background: t.widget, border: `1px solid ${t.edge}`, boxShadow: t.pop }}>
-        <svg width={15} height={15} viewBox="0 0 16 16" aria-hidden>
-          <circle cx={7} cy={7} r={5} fill="none" stroke={t.dim} strokeWidth={1.8} />
-          <line x1={11} y1={11} x2={14.5} y2={14.5} stroke={t.dim} strokeWidth={1.8} strokeLinecap="round" />
-        </svg>
+      <div className="mt-3 flex items-center gap-2.5 rounded-full px-4 py-3" style={{ background: t.widget, border: `1px solid ${t.edge}`, boxShadow: t.pop, color: t.dim }}>
+        <SearchIcon size={15} />
         <span className="text-[14px]" style={{ color: t.dim }}>
           Search
         </span>
@@ -491,10 +492,10 @@ function DetailScreen({
             type="button"
             onClick={onClose}
             aria-label="Back to home screen"
-            className="flex h-9 w-9 items-center justify-center rounded-full text-[17px]"
+            className="flex h-9 w-9 items-center justify-center rounded-full"
             style={{ color: t.ink }}
           >
-            ←
+            <ChevronLeft size={20} />
           </button>
         </div>
         <h1 className="px-5 pt-2 text-[34px] leading-none" style={{ fontFamily: t.serif, color: t.ink }}>
@@ -536,7 +537,9 @@ function DetailScreen({
             aria-label="View today's run"
           >
             <span>TODAY&apos;S RUN · 5.2 KM</span>
-            <span aria-hidden>→</span>
+            <span aria-hidden>
+              <ArrowRight size={16} />
+            </span>
           </motion.button>
         </div>
       </div>
@@ -564,10 +567,10 @@ function RunScreen({ onBack, t }: { onBack: () => void; t: Tokens }) {
             type="button"
             onClick={onBack}
             aria-label="Back to step details"
-            className="flex h-9 w-9 items-center justify-center rounded-full text-[17px]"
+            className="flex h-9 w-9 items-center justify-center rounded-full"
             style={{ color: t.ink }}
           >
-            ←
+            <ChevronLeft size={20} />
           </button>
         </div>
         <h1 className="px-5 pt-2 text-[34px] leading-none" style={{ fontFamily: t.serif, color: t.ink }}>
