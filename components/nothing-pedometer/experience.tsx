@@ -61,14 +61,14 @@ const MICRO = "font-mono text-[10px] uppercase tracking-[0.22em]";
 
 /* ---------------------------------- hooks --------------------------------- */
 
-function useNow(): string {
-  const [now, setNow] = useState("9:41");
+function useNow(): { time: string; dateLine: string } {
+  const fmt = (d: Date) => ({
+    time: `${d.getHours()}:${String(d.getMinutes()).padStart(2, "0")}`,
+    dateLine: `${["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][d.getDay()]} · ${String(d.getDate()).padStart(2, "0")} ${["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][d.getMonth()]}`,
+  });
+  const [now, setNow] = useState({ time: "9:41", dateLine: "Fri · 02 Oct" });
   useEffect(() => {
-    const fmt = () => {
-      const d = new Date();
-      return `${d.getHours()}:${String(d.getMinutes()).padStart(2, "0")}`;
-    };
-    const id = setInterval(() => setNow(fmt()), 10_000);
+    const id = setInterval(() => setNow(fmt(new Date())), 10_000);
     return () => clearInterval(id);
   }, []);
   return now;
@@ -127,7 +127,7 @@ function WeekDots({ today }: { today: number }) {
                 <span
                   key={r}
                   className="h-[3px] w-[3px] rounded-full"
-                  style={{ background: r < lit ? (isToday ? RED : "#fff") : "rgba(255,255,255,0.10)" }}
+                  style={{ background: r < lit ? (isToday ? "#fff" : "rgba(255,255,255,0.45)") : "rgba(255,255,255,0.10)" }}
                 />
               ))}
             </div>
@@ -155,7 +155,7 @@ function HourlyBars() {
           className="flex-1 rounded-[1px]"
           style={{
             height: `${Math.max(4, (v / max) * 100)}%`,
-            background: v === max ? RED : v === 0 ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.55)",
+            background: v === max ? "#fff" : v === 0 ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.45)",
           }}
         />
       ))}
@@ -243,8 +243,8 @@ function RouteMap({ reduced }: { reduced: boolean }) {
       />
       {marks.map((m, i) => (
         <g key={i}>
-          <circle cx={m.x} cy={m.y} r={7} fill="#000" stroke={RED} strokeWidth={2} />
-          <text x={m.x} y={m.y - 12} textAnchor="middle" fill={RED} fontSize={10} fontFamily="monospace" letterSpacing={1}>
+          <circle cx={m.x} cy={m.y} r={7} fill="#000" stroke="rgba(255,255,255,0.85)" strokeWidth={2} />
+          <text x={m.x} y={m.y - 12} textAnchor="middle" fill="#fff" fontSize={10} fontFamily="monospace" letterSpacing={1}>
             {`KM${i + 1}`}
           </text>
         </g>
@@ -281,7 +281,7 @@ function StatusBar({ time }: { time: string }) {
   );
 }
 
-function HomeScreen({ time, onOpen, shellId }: { time: string; onOpen: () => void; shellId?: string }) {
+function HomeScreen({ now, onOpen, shellId }: { now: { time: string; dateLine: string }; onOpen: () => void; shellId?: string }) {
   return (
     <motion.div
       className="absolute inset-0 flex flex-col bg-black"
@@ -289,12 +289,12 @@ function HomeScreen({ time, onOpen, shellId }: { time: string; onOpen: () => voi
       transition={{ duration: DUR.base, ease: EASE_OUT }}
     >
       <div className="mx-auto mt-2.5 h-[22px] w-[110px] rounded-full bg-black ring-1 ring-white/10" aria-hidden />
-      <StatusBar time={time} />
+      <StatusBar time={now.time} />
       <p className={`${MICRO} px-6 pt-5`} style={{ color: DIM }}>
-        Fri · 02 Oct
+        {now.dateLine}
       </p>
       <div className="px-6 pt-1">
-        <DotText text={time} dot={2.6} pitch={10} label={`Time ${time}`} />
+        <DotText text={now.time} dot={2.6} pitch={10} label={`Time ${now.time}`} />
       </div>
 
       <div className="px-4 pt-4">
@@ -325,13 +325,9 @@ function HomeScreen({ time, onOpen, shellId }: { time: string; onOpen: () => voi
           </span>
           <span className="mt-2.5 flex items-center justify-between font-mono text-[10px] tracking-[0.14em]">
             <span style={{ color: DIM }}>73% OF GOAL</span>
-            <motion.span
-              className="text-white"
-              animate={{ x: [0, 4, 0] }}
-              transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
-            >
+            <span className="text-white" aria-hidden>
               TAP TO EXPAND ›
-            </motion.span>
+            </span>
           </span>
         </motion.button>
       </div>
@@ -400,7 +396,7 @@ function DetailScreen({
             className="flex h-8 w-8 items-center justify-center rounded-full border text-[15px] text-white"
             style={{ borderColor: FAINT }}
           >
-            ×
+            ←
           </button>
         </div>
 
@@ -412,10 +408,10 @@ function DetailScreen({
             <DotText text={steps.toLocaleString("en-US")} dot={3} pitch={11} label={`${steps} steps`} />
           </div>
           <div className="mt-3">
-            <DottedLine frac={STEPS / GOAL} total={34} lit={RED} />
+            <DottedLine frac={STEPS / GOAL} total={34} />
           </div>
           <p className="mt-2 font-mono text-[10px] tracking-[0.16em]" style={{ color: DIM }}>
-            <span style={{ color: RED }}>73%</span> OF 10,000 GOAL · 2,716 TO GO
+            <span className="text-white">73%</span> OF 10,000 GOAL · 2,716 TO GO
           </p>
         </div>
 
@@ -462,8 +458,8 @@ function DetailScreen({
             type="button"
             onClick={onRun}
             whileTap={{ scale: 0.98 }}
-            className="flex w-full items-center justify-between rounded-[20px] px-5 py-4 font-mono text-[12px] tracking-[0.18em] text-white"
-            style={{ background: RED }}
+            className="flex w-full items-center justify-between rounded-[20px] px-5 py-4 font-mono text-[12px] tracking-[0.18em] text-black"
+            style={{ background: "#fff" }}
             aria-label="View today's run"
           >
             <span>TODAY&apos;S RUN · 5.2 KM</span>
@@ -555,7 +551,7 @@ function RunScreen({ onBack }: { onBack: () => void }) {
                   className="flex-1 rounded-[1px]"
                   style={{
                     height: `${(e / max) * 100}%`,
-                    background: e === max ? RED : "rgba(255,255,255,0.5)",
+                    background: e === max ? "#fff" : "rgba(255,255,255,0.4)",
                   }}
                 />
               ))}
@@ -574,7 +570,7 @@ function RunScreen({ onBack }: { onBack: () => void }) {
                   borderTop: i === 0 ? "none" : `1px solid ${FAINT}`,
                 }}
               >
-                <span className="tracking-[0.14em]" style={{ color: RED }}>
+                <span className="tracking-[0.14em] text-white">
                   KM {s.km}
                 </span>
                 <span className="text-white">{s.pace}</span>
@@ -594,13 +590,23 @@ export function PedometerExperience() {
   const [stage, setStage] = useState<"home" | "detail" | "run">("home");
   const [visits, setVisits] = useState(0);
   const reduced = useReducedMotion();
-  const time = useNow();
+  const now = useNow();
   const shellId = reduced ? undefined : "pedometer-shell";
 
   const open = () => {
     setVisits((v) => v + 1);
     setStage("detail");
   };
+
+  /* System-back mirror: Esc walks the stack back, exactly one level per press. */
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      setStage((s) => (s === "run" ? "detail" : s === "detail" ? "home" : s));
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   return (
     <main className="flex min-h-dvh flex-col items-center bg-black text-white">
@@ -614,7 +620,7 @@ export function PedometerExperience() {
           aria-label="Nothing Phone pedometer concept"
         >
           <AnimatePresence>
-            {stage === "home" && <HomeScreen key="home" time={time} onOpen={open} shellId={shellId} />}
+            {stage === "home" && <HomeScreen key="home" now={now} onOpen={open} shellId={shellId} />}
             {stage === "detail" && (
               <DetailScreen key="detail" onClose={() => setStage("home")} onRun={() => setStage("run")} visits={visits} shellId={shellId} />
             )}
