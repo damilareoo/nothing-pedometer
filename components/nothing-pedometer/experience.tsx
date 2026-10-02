@@ -167,7 +167,7 @@ function ActivityCard({ t }: { t: Tokens }) {
   const [range, setRange] = useState<"day" | "week">("day");
   const reduced = useReducedMotion();
   return (
-    <div className="rounded-[20px] p-[18px]" style={{ background: t.card }}>
+    <div className="rounded-[20px] p-[18px]" style={{ background: t.card, border: `1px solid ${t.edge}`, boxShadow: t.pop }}>
       <div className="flex items-center justify-between">
         <p className={SANS_LABEL} style={{ color: t.dim }}>
           Activity
@@ -220,7 +220,7 @@ function ActivityCard({ t }: { t: Tokens }) {
 
 function Stat({ label, value, sub, t }: { label: string; value: string; sub?: string; t: Tokens }) {
   return (
-    <div className="rounded-[18px] p-3.5" style={{ background: t.card }}>
+    <div className="rounded-[18px] p-3.5" style={{ background: t.card, border: `1px solid ${t.edge}`, boxShadow: t.pop }}>
       <p className={SANS_LABEL} style={{ color: t.dim }}>
         {label}
       </p>
@@ -342,7 +342,7 @@ function ClockFace({ time, t }: { time: string; t: Tokens }) {
   const hh = hand(ha, 24);
   const mh = hand(ma, 36);
   return (
-    <svg viewBox="0 0 120 120" className="h-[120px] w-[120px]" role="img" aria-label={`Analog clock showing ${time}`}>
+    <svg viewBox="0 0 120 120" className="h-[120px] w-[120px]" role="img" aria-label={`Analog clock showing ${time}`} style={{ borderRadius: "50%", border: `1px solid ${t.edge}`, boxShadow: t.pop }}>
       <circle cx={60} cy={60} r={58} fill={t.widget} />
       <line x1={60} y1={60} {...hh} stroke={t.dot} strokeWidth={9} strokeLinecap="round" />
       <line x1={60} y1={60} {...mh} stroke={t.dim} strokeWidth={4} strokeLinecap="round" />
@@ -355,7 +355,7 @@ function ClockFace({ time, t }: { time: string; t: Tokens }) {
 /** Date + weather squircle, dot-matrix capitals exactly like the device. */
 function DateCard({ weekday, dayMonth, t }: { weekday: string; dayMonth: string; t: Tokens }) {
   return (
-    <div className="flex flex-1 flex-col justify-center gap-[8px] rounded-[24px] p-4" style={{ background: t.widget }}>
+    <div className="flex flex-1 flex-col justify-center gap-[8px] rounded-[24px] p-4" style={{ background: t.widget, border: `1px solid ${t.edge}`, boxShadow: t.pop }}>
       <DotText text={weekday} dot={2.2} pitch={5.4} color={t.dot} dimOpacity={t.unlit} />
       <DotText text={dayMonth} dot={2.2} pitch={5.4} color={t.dot} dimOpacity={t.unlit} />
       <DotText text="PARTLY SUNNY" dot={1.2} pitch={2.8} color={t.dot} dimOpacity={t.unlit} />
@@ -379,7 +379,7 @@ function PedoWidget({ onOpen, shellId, t }: { onOpen: () => void; shellId?: stri
       transition={{ duration: DUR.base, ease: EASE_OUT }}
       aria-label="Open pedometer details: 162 total today, 7,442 seven-day average"
       className="block w-[184px] rounded-[24px] p-[15px] text-left"
-      style={{ background: t.widget }}
+      style={{ background: t.widget, border: `1px solid ${t.edge}`, boxShadow: t.pop }}
     >
       <DotText text="162" dot={2.1} pitch={5.2} color={t.dot} dimOpacity={t.unlit} label="162" />
       <span className={`${row} mt-[7px]`}>
@@ -405,14 +405,14 @@ function Dock({ t }: { t: Tokens }) {
     <div className="mt-auto px-7 pb-2">
       <div className="grid grid-cols-4 gap-4">
         {["PHO", "MSG", "CAM", "SET"].map((a) => (
-          <div key={a} className="flex items-center justify-center rounded-full" style={{ background: t.dock, aspectRatio: "1" }}>
+          <div key={a} className="flex items-center justify-center rounded-full" style={{ background: t.dock, border: `1px solid ${t.edge}`, boxShadow: t.pop, aspectRatio: "1" }}>
             <span className="font-mono text-[9px] tracking-[0.18em]" style={{ color: t.dim }}>
               {a}
             </span>
           </div>
         ))}
       </div>
-      <div className="mt-3 flex items-center gap-2.5 rounded-full px-4 py-3" style={{ background: t.widget }}>
+      <div className="mt-3 flex items-center gap-2.5 rounded-full px-4 py-3" style={{ background: t.widget, border: `1px solid ${t.edge}`, boxShadow: t.pop }}>
         <svg width={15} height={15} viewBox="0 0 16 16" aria-hidden>
           <circle cx={7} cy={7} r={5} fill="none" stroke={t.dim} strokeWidth={1.8} />
           <line x1={11} y1={11} x2={14.5} y2={14.5} stroke={t.dim} strokeWidth={1.8} strokeLinecap="round" />
@@ -500,7 +500,7 @@ function DetailScreen({
         </p>
 
         <div className="px-4 pt-4">
-          <div className="rounded-[20px] p-[18px]" style={{ background: t.card }}>
+          <div className="rounded-[20px] p-[18px]" style={{ background: t.card, border: `1px solid ${t.edge}`, boxShadow: t.pop }}>
             <DotText text={steps.toLocaleString("en-US")} dot={2.9} pitch={10.5} color={t.dot} dimOpacity={t.unlit} label={`${steps} steps`} />
             <div className="mt-3.5">
               <DottedLine frac={STEPS / GOAL} total={32} t={t} />
@@ -577,7 +577,7 @@ function RunScreen({ onBack, t }: { onBack: () => void; t: Tokens }) {
         </div>
 
         <div className="px-4 pt-3">
-          <div className="overflow-hidden rounded-[20px]" style={{ background: t.card }}>
+          <div className="overflow-hidden rounded-[20px]" style={{ background: t.card, border: `1px solid ${t.edge}`, boxShadow: t.pop }}>
             <RouteMap reduced={reduced} t={t} />
             <div className="flex items-center justify-between border-t px-4 py-2.5 font-mono text-[9px] tracking-[0.18em]" style={{ borderColor: t.faint, color: t.dim }}>
               <span>TRACE</span>
@@ -597,7 +597,7 @@ function RunScreen({ onBack, t }: { onBack: () => void; t: Tokens }) {
         </div>
 
         <div className="px-4 pt-2.5">
-          <div className="rounded-[20px] p-[18px]" style={{ background: t.card }}>
+          <div className="rounded-[20px] p-[18px]" style={{ background: t.card, border: `1px solid ${t.edge}`, boxShadow: t.pop }}>
             <div className="flex items-baseline justify-between">
               <p className={SANS_LABEL} style={{ color: t.dim }}>
                 Elevation
@@ -619,7 +619,7 @@ function RunScreen({ onBack, t }: { onBack: () => void; t: Tokens }) {
         </div>
 
         <div className="px-4 pt-2.5">
-          <div className="overflow-hidden rounded-[20px]" style={{ background: t.card }}>
+          <div className="overflow-hidden rounded-[20px]" style={{ background: t.card, border: `1px solid ${t.edge}`, boxShadow: t.pop }}>
             {SPLITS.map((s, i) => (
               <div
                 key={s.km}

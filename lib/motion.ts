@@ -21,7 +21,8 @@ export const DUR = {
   entrance: 1.2,
 } as const;
 
-/** Whether the visitor asked for less motion. False on the server. */
+/** The gap between one staged item arriving and the next. */
+export const STAGGER = 0.06;
 export function useReducedMotion(): boolean {
   const [reduced, setReduced] = useState(false);
   useEffect(() => {
