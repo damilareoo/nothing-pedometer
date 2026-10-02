@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { DUR, EASE_OUT, useReducedMotion } from "@/lib/motion";
+import { DUR, EASE_OUT, STAGGER, useReducedMotion } from "@/lib/motion";
 import { THEMES, type ThemeName, type Tokens } from "@/lib/theme";
 import { ArrowRight, CameraIcon, ChevronLeft, GearIcon, MessageIcon, PhoneIcon, SearchIcon } from "./icons";
 import { DotText } from "./dot-matrix";
@@ -106,6 +106,21 @@ function Matrix({ t, text, dot = 2.4, pitch = 8, label }: { t: Tokens; text: str
   return <DotText text={text} dot={dot * t.dotScale} pitch={pitch} color={t.dot} dimOpacity={t.unlit} label={label} />;
 }
 
+/** Staged arrival: content settles in just after the sheet morph lands. */
+function Rise({ index = 0, className, children }: { index?: number; className?: string; children: React.ReactNode }) {
+  const reduced = useReducedMotion();
+  return (
+    <motion.div
+      className={className}
+      initial={{ opacity: 0, y: reduced ? 0 : 14 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: DUR.base, ease: EASE_OUT, delay: reduced ? 0 : 0.12 + index * STAGGER }}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
 /** A dotted progress line: lit dots up to `frac`, dim matrix after. */
 function DottedLine({ frac, total = 30, t }: { frac: number; total?: number; t: Tokens }) {
   const on = Math.round(frac * total);
@@ -152,18 +167,35 @@ function WeekDots({ today, t }: { today: number; t: Tokens }) {
   );
 }
 
-/** 24-hour step histogram. Peak reads by height; the ink stays monochrome. */
-function HourlyBars({ t }: { t: Tokens }) {
+/** 24-hour activity as dot columns — the same language as the week view. */
+function HourlyDots({ t }: { t: Tokens }) {
   const max = Math.max(...HOURLY);
+  const ROWS = 12;
   return (
-    <div className="flex h-[64px] items-end gap-[3px]" aria-hidden>
-      {HOURLY.map((v, i) => (
-        <div
-          key={i}
-          className="flex-1 rounded-[1px]"
-          style={{ height: `${Math.max(4, (v / max) * 100)}%`, background: v === 0 ? t.faint : t.dot, opacity: v === 0 || v === max ? 1 : 0.55 }}
-        />
-      ))}
+    <div>
+      <div className="flex h-[76px] items-end gap-[2.5px]" aria-hidden>
+        {HOURLY.map((v, i) => {
+          const lit = Math.round((v / max) * ROWS);
+          return (
+            <div key={i} className="flex flex-1 flex-col-reverse justify-start gap-[3px]">
+              {Array.from({ length: ROWS }).map((_, r) => (
+                <span
+                  key={r}
+                  className="mx-auto h-[2px] w-[2px] rounded-full"
+                  style={{ background: r < lit ? t.dot : t.faint }}
+                />
+              ))}
+            </div>
+          );
+        })}
+      </div>
+      <div className="flex justify-between pt-1.5 font-mono text-[8px] tracking-[0.14em]" style={{ color: t.dim }}>
+        <span>00</span>
+        <span>06</span>
+        <span>12</span>
+        <span>18</span>
+        <span>24</span>
+      </div>
     </div>
   );
 }
@@ -213,7 +245,7 @@ function ActivityCard({ t }: { t: Tokens }) {
             exit={{ opacity: 0, y: reduced ? 0 : -8 }}
             transition={{ duration: DUR.micro, ease: EASE_OUT }}
           >
-            {range === "day" ? <HourlyBars t={t} /> : <WeekDots today={6} t={t} />}
+            {range === "day" ? <HourlyDots t={t} /> : <WeekDots today={6} t={t} />}
           </motion.div>
         </AnimatePresence>
       </div>
@@ -519,9 +551,9 @@ function DetailScreen({
           Pedometer
         </p>
 
-        <div className="px-4 pt-4">
+        <Rise index={0} className="px-4 pt-4">
           <div className="rounded-[20px] p-[18px]" style={{ background: t.card, border: `1px solid ${t.edge}`, boxShadow: t.pop }}>
-            <Matrix t={t} text={steps.toLocaleString("en-US")} dot={2.9} pitch={10.5} label={`${steps} steps`} />
+            <Matrix t={t} text={steps.toLocaleString("en-US")} dot={4} pitch={10.5} label={`${steps} steps`} />
             <div className="mt-3.5">
               <DottedLine frac={STEPS / GOAL} total={32} t={t} />
             </div>
@@ -529,19 +561,19 @@ function DetailScreen({
               <span style={{ color: t.ink }}>73%</span> OF 10,000 GOAL · 2,716 TO GO
             </p>
           </div>
-        </div>
+        </Rise>
 
-        <div className="grid grid-cols-3 gap-2.5 px-4 pt-2.5">
+        <Rise index={1} className="grid grid-cols-3 gap-2.5 px-4 pt-2.5">
           <Stat label="Distance" value={String(KM)} sub="KM" t={t} />
           <Stat label="Energy" value={String(KCAL)} sub="KCAL" t={t} />
           <Stat label="Active" value={String(ACTIVE_MIN)} sub="MIN" t={t} />
-        </div>
+        </Rise>
 
-        <div className="px-4 pt-2.5">
+        <Rise index={2} className="px-4 pt-2.5">
           <ActivityCard t={t} />
-        </div>
+        </Rise>
 
-        <div className="px-4 pt-2.5">
+        <Rise index={3} className="px-4 pt-2.5">
           <motion.button
             type="button"
             onClick={onRun}
@@ -555,7 +587,7 @@ function DetailScreen({
               <ArrowRight size={16} />
             </span>
           </motion.button>
-        </div>
+        </Rise>
       </div>
     </motion.div>
   );
@@ -563,7 +595,7 @@ function DetailScreen({
 
 /* ---------------------------------- run ------------------------------------ */
 
-function RunScreen({ onBack, t }: { onBack: () => void; t: Tokens }) {
+function RunScreen({ onBack, onShare, t }: { onBack: () => void; onShare: () => void; t: Tokens }) {
   const reduced = useReducedMotion();
   const max = Math.max(...ELEV);
   return (
@@ -576,7 +608,7 @@ function RunScreen({ onBack, t }: { onBack: () => void; t: Tokens }) {
       transition={{ duration: reduced ? 0 : DUR.base, ease: EASE_OUT }}
     >
       <div className="no-scrollbar flex-1 overflow-y-auto pb-9">
-        <div className="flex items-center gap-4 px-5 pt-5">
+        <div className="flex items-center justify-between px-5 pt-5">
           <button
             type="button"
             onClick={onBack}
@@ -585,6 +617,15 @@ function RunScreen({ onBack, t }: { onBack: () => void; t: Tokens }) {
             style={{ color: t.ink }}
           >
             <ChevronLeft size={20} />
+          </button>
+          <button
+            type="button"
+            onClick={onShare}
+            aria-label="Share this run"
+            className={MICRO}
+            style={{ color: t.dim }}
+          >
+            SHARE
           </button>
         </div>
         <h1 className="px-5 pt-2 text-[34px] leading-none" style={{ fontFamily: t.serif, color: t.ink }}>
@@ -595,10 +636,10 @@ function RunScreen({ onBack, t }: { onBack: () => void; t: Tokens }) {
         </p>
 
         <div className="px-4 pt-4">
-          <Matrix t={t} text={RUN.dist} dot={3.2} pitch={12} label={`${RUN.dist} kilometres`} />
+          <Matrix t={t} text={RUN.dist} dot={4.4} pitch={12} label={`${RUN.dist} kilometres`} />
         </div>
 
-        <div className="px-4 pt-3">
+        <Rise index={0} className="px-4 pt-3">
           <div className="overflow-hidden rounded-[20px]" style={{ background: t.card, border: `1px solid ${t.edge}`, boxShadow: t.pop }}>
             <RouteMap reduced={reduced} t={t} />
             <div className="flex items-center justify-between border-t px-4 py-2.5 font-mono text-[9px] tracking-[0.18em]" style={{ borderColor: t.faint, color: t.dim }}>
@@ -610,15 +651,15 @@ function RunScreen({ onBack, t }: { onBack: () => void; t: Tokens }) {
               <span>DOT-MATRIX GPS</span>
             </div>
           </div>
-        </div>
+        </Rise>
 
-        <div className="grid grid-cols-3 gap-2.5 px-4 pt-2.5">
+        <Rise index={1} className="grid grid-cols-3 gap-2.5 px-4 pt-2.5">
           <Stat label="Time" value={RUN.time} t={t} />
           <Stat label="Pace" value={RUN.pace} sub="/KM" t={t} />
           <Stat label="Energy" value={RUN.kcal} sub="KCAL" t={t} />
-        </div>
+        </Rise>
 
-        <div className="px-4 pt-2.5">
+        <Rise index={2} className="px-4 pt-2.5">
           <div className="rounded-[20px] p-[18px]" style={{ background: t.card, border: `1px solid ${t.edge}`, boxShadow: t.pop }}>
             <div className="flex items-baseline justify-between">
               <p className={SANS_LABEL} style={{ color: t.dim }}>
@@ -638,9 +679,9 @@ function RunScreen({ onBack, t }: { onBack: () => void; t: Tokens }) {
               ))}
             </div>
           </div>
-        </div>
+        </Rise>
 
-        <div className="px-4 pt-2.5">
+        <Rise index={3} className="px-4 pt-2.5">
           <div className="overflow-hidden rounded-[20px]" style={{ background: t.card, border: `1px solid ${t.edge}`, boxShadow: t.pop }}>
             {SPLITS.map((s, i) => (
               <div
@@ -654,7 +695,220 @@ function RunScreen({ onBack, t }: { onBack: () => void; t: Tokens }) {
               </div>
             ))}
           </div>
+        </Rise>
+      </div>
+    </motion.div>
+  );
+}
+
+/* ---------------------------------- share ----------------------------------- */
+
+type ShareTarget = "sheet" | "x" | "instagram" | "whatsapp";
+
+/** The artifact: what actually travels when a run is shared. Always black. */
+function ShareCard() {
+  return (
+    <div className="rounded-[18px] bg-[#0B0B0D] p-4">
+      <p className="font-mono text-[9px] uppercase tracking-[0.22em]" style={{ color: "rgba(255,255,255,0.55)" }}>
+        Morning run · 06:42
+      </p>
+      <div className="mt-1.5">
+        <DotText text="5.2" dot={3.4} pitch={10.5} color="#fff" dimOpacity={0.09} label="5.2 kilometres" />
+      </div>
+      <p className="mt-1 font-mono text-[10px] tracking-[0.24em] text-white">KILOMETRES</p>
+      <svg viewBox="0 0 360 250" className="mt-2 h-auto w-full" role="img" aria-label="Run route">
+        <path d={ROUTE} fill="none" stroke="rgba(255,255,255,0.9)" strokeWidth={6} strokeLinecap="round" strokeDasharray="0.1 10" />
+        <circle cx={44} cy={200} r={7} fill="#fff" />
+        <circle cx={96} cy={200} r={7} fill="#E11A1B" />
+      </svg>
+      <div className="mt-2 flex justify-between font-mono text-[11px] text-white">
+        <span>32:14</span>
+        <span>6&apos;12&apos;&apos;/KM</span>
+        <span>268 KCAL</span>
+      </div>
+      <p className="mt-2.5 font-mono text-[8px] uppercase tracking-[0.26em]" style={{ color: "rgba(255,255,255,0.45)" }}>
+        Nothing · Pedometer
+      </p>
+    </div>
+  );
+}
+
+function ShareSheet({ t, onPick, onClose }: { t: Tokens; onPick: (p: Exclude<ShareTarget, "sheet"> | "copy") => void; onClose: () => void }) {
+  const [copied, setCopied] = useState(false);
+  useEffect(() => {
+    if (!copied) return;
+    const id = setTimeout(() => setCopied(false), 1600);
+    return () => clearTimeout(id);
+  }, [copied]);
+  const rows = [
+    { id: "x", label: "X POST", mark: "X" },
+    { id: "instagram", label: "INSTAGRAM STORY", mark: "IG" },
+    { id: "whatsapp", label: "WHATSAPP", mark: "WA" },
+  ] as const;
+  return (
+    <>
+      <motion.button
+        type="button"
+        aria-label="Close share"
+        className="absolute inset-0"
+        style={{ background: "rgba(0,0,0,0.55)" }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        onClick={onClose}
+      />
+      <motion.div
+        className="absolute inset-x-0 bottom-0 rounded-t-[28px] px-5 pb-7 pt-3"
+        style={{ background: t.card }}
+        initial={{ y: "100%" }}
+        animate={{ y: 0 }}
+        exit={{ y: "100%" }}
+        transition={{ duration: DUR.base, ease: EASE_OUT }}
+      >
+        <div className="mx-auto h-[4px] w-[40px] rounded-full" style={{ background: t.faint }} />
+        <p className="pt-3 font-mono text-[10px] uppercase tracking-[0.22em]" style={{ color: t.dim }}>
+          Share run
+        </p>
+        <div className="pt-1">
+          {rows.map((r) => (
+            <button key={r.id} type="button" onClick={() => onPick(r.id)} className="flex w-full items-center gap-3.5 py-3 text-left">
+              <span className="flex h-10 w-10 items-center justify-center rounded-full font-mono text-[10px]" style={{ background: t.faint, color: t.ink }}>
+                {r.mark}
+              </span>
+              <span className="font-mono text-[12px] tracking-[0.16em]" style={{ color: t.ink }}>
+                {r.label}
+              </span>
+              <span className="ml-auto" style={{ color: t.dim }}>
+                →
+              </span>
+            </button>
+          ))}
+          <button
+            type="button"
+            onClick={() => { setCopied(true); onPick("copy"); }}
+            className="flex w-full items-center gap-3.5 py-3 text-left"
+          >
+            <span className="flex h-10 w-10 items-center justify-center rounded-full font-mono text-[10px]" style={{ background: t.faint, color: t.ink }}>
+              {copied ? "✓" : "URL"}
+            </span>
+            <span className="font-mono text-[12px] tracking-[0.16em]" style={{ color: t.ink }}>
+              {copied ? "LINK COPIED" : "COPY LINK"}
+            </span>
+          </button>
         </div>
+        <button
+          type="button"
+          onClick={onClose}
+          className="mt-2 w-full rounded-2xl py-3 font-mono text-[12px] tracking-[0.18em]"
+          style={{ background: t.faint, color: t.ink }}
+        >
+          CANCEL
+        </button>
+      </motion.div>
+    </>
+  );
+}
+
+function XPost() {
+  return (
+    <div className="rounded-[20px] border border-white/10 bg-black p-4">
+      <div className="flex items-center gap-2.5">
+        <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#E11A1B] font-mono text-[11px] text-white">
+          N
+        </span>
+        <div>
+          <p className="text-[13px] font-bold text-white">Pedometer</p>
+          <p className="font-mono text-[10px]" style={{ color: "rgba(255,255,255,0.5)" }}>
+            @nothing · 2m
+          </p>
+        </div>
+      </div>
+      <p className="pt-2.5 text-[13px] text-white">Morning loop: 5.2 km in 32:14.</p>
+      <div className="pt-2.5">
+        <ShareCard />
+      </div>
+      <div className="flex gap-6 pt-3 font-mono text-[10px]" style={{ color: "rgba(255,255,255,0.5)" }}>
+        <span>12</span>
+        <span>48</span>
+        <span>312</span>
+      </div>
+    </div>
+  );
+}
+
+function StoryPreview() {
+  return (
+    <div className="overflow-hidden rounded-[20px]" style={{ background: "linear-gradient(170deg, #1A1C26 0%, #3A2E38 55%, #101014 100%)", aspectRatio: "9/16" }}>
+      <div className="mx-auto mt-2 h-[3px] w-16 rounded-full bg-white/40" />
+      <div className="px-4 pt-6">
+        <ShareCard />
+      </div>
+      <p className="px-4 pt-4 font-mono text-[11px] tracking-[0.2em] text-white">MORNING LOOP — 5.2 KM</p>
+    </div>
+  );
+}
+
+function WAPreview() {
+  return (
+    <div className="rounded-[20px] p-4" style={{ background: "#0B141A" }}>
+      <p className="text-center font-mono text-[9px] tracking-[0.18em]" style={{ color: "rgba(255,255,255,0.45)" }}>
+        TODAY
+      </p>
+      <div className="ml-auto mt-2 w-[94%] rounded-[14px] rounded-tr-[4px] p-2" style={{ background: "#005C4B" }}>
+        <ShareCard />
+        <p className="px-1 pb-0.5 pt-1.5 text-[12px] text-white">Morning loop done. 5.2 km in 32:14.</p>
+        <p className="px-1 text-right font-mono text-[9px]" style={{ color: "rgba(255,255,255,0.7)" }}>
+          06:47 ✓✓
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function SharePreview({ platform, t, onBack }: { platform: Exclude<ShareTarget, "sheet">; onBack: () => void; t: Tokens }) {
+  const reduced = useReducedMotion();
+  const [posted, setPosted] = useState(false);
+  useEffect(() => {
+    if (!posted) return;
+    const id = setTimeout(() => setPosted(false), 1600);
+    return () => clearTimeout(id);
+  }, [posted]);
+  const names = { x: "X POST", instagram: "INSTAGRAM STORY", whatsapp: "WHATSAPP" } as const;
+  return (
+    <motion.div
+      className="absolute inset-0 flex flex-col"
+      style={{ background: t.ground }}
+      initial={{ x: "100%" }}
+      animate={{ x: 0 }}
+      exit={{ x: "100%" }}
+      transition={{ duration: reduced ? 0 : DUR.base, ease: EASE_OUT }}
+    >
+      <div className="flex items-center justify-between px-5 pt-5">
+        <button
+          type="button"
+          onClick={onBack}
+          aria-label="Back to share options"
+          className="flex h-9 w-9 items-center justify-center rounded-full"
+          style={{ color: t.ink }}
+        >
+          <ChevronLeft size={20} />
+        </button>
+        <p className={MICRO} style={{ color: t.dim }}>
+          {names[platform]}
+        </p>
+        <button
+          type="button"
+          onClick={() => setPosted(true)}
+          className="font-mono text-[11px] tracking-[0.18em]"
+          style={{ color: posted ? t.dim : t.ink }}
+        >
+          {posted ? "POSTED ✓" : "POST"}
+        </button>
+      </div>
+      <div className="no-scrollbar flex-1 overflow-y-auto px-4 pb-8 pt-4">
+        {platform === "x" && <XPost />}
+        {platform === "instagram" && <StoryPreview />}
+        {platform === "whatsapp" && <WAPreview />}
       </div>
     </motion.div>
   );
@@ -662,10 +916,17 @@ function RunScreen({ onBack, t }: { onBack: () => void; t: Tokens }) {
 
 /* ---------------------------------- root ----------------------------------- */
 
+const STAGE_LINE = {
+  home: "THE WIDGET, EXACTLY AS IT SHIPS — TAP IT",
+  detail: "ONE TAP — EVERYTHING IT ALREADY KNOWS",
+  run: "THE RUN, IN NOTHING'S LANGUAGE",
+} as const;
+
 export function PedometerExperience() {
   const [stage, setStage] = useState<"home" | "detail" | "run">("home");
   const [visits, setVisits] = useState(0);
   const [theme, setTheme] = useState<ThemeName>("dark");
+  const [share, setShareState] = useState<null | ShareTarget>(null);
   const reduced = useReducedMotion();
   const now = useNow();
   const t = THEMES[theme];
@@ -676,10 +937,22 @@ export function PedometerExperience() {
     setStage("detail");
   };
 
-  /* System-back mirror: Esc walks the stack back, exactly one level per press. */
+  /* Share overlay with a ref mirror so Esc can read it synchronously. */
+  const shareRef = useRef(share);
+  const setShare = (v: null | ShareTarget) => {
+    shareRef.current = v;
+    setShareState(v);
+  };
+
+  /* System-back mirror: Esc closes share first, then walks the stack back. */
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
+      const sh = shareRef.current;
+      if (sh) {
+        setShare(sh === "sheet" ? null : "sheet");
+        return;
+      }
       setStage((s) => (s === "run" ? "detail" : s === "detail" ? "home" : s));
     };
     window.addEventListener("keydown", onKey);
@@ -709,6 +982,21 @@ export function PedometerExperience() {
           OS 4.1 tokens
         </span>
       </div>
+      <div className="flex h-8 items-start justify-center overflow-hidden pt-2">
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.p
+            key={stage}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: DUR.micro, ease: EASE_OUT }}
+            className="text-center font-mono text-[10px] uppercase tracking-[0.24em]"
+            style={{ color: "rgba(255,255,255,0.55)" }}
+          >
+            {STAGE_LINE[stage]}
+          </motion.p>
+        </AnimatePresence>
+      </div>
       <div className="flex w-full flex-1 items-center justify-center sm:py-6">
         <div
           className="relative h-dvh w-full overflow-hidden sm:h-[860px] sm:w-[400px] sm:rounded-[40px] sm:ring-1 sm:ring-white/15"
@@ -722,13 +1010,20 @@ export function PedometerExperience() {
             )}
           </AnimatePresence>
           <AnimatePresence>
-            {stage === "run" && <RunScreen key="run" onBack={() => setStage("detail")} t={t} />}
+            {stage === "run" && (
+              <RunScreen key="run" onBack={() => setStage("detail")} onShare={() => setShare("sheet")} t={t} />
+            )}
+          </AnimatePresence>
+          <AnimatePresence>
+            {stage === "run" && share === "sheet" && (
+              <ShareSheet key="sheet" t={t} onPick={(p) => setShare(p === "copy" ? "sheet" : p)} onClose={() => setShare(null)} />
+            )}
+            {stage === "run" && share !== null && share !== "sheet" && (
+              <SharePreview key={share} platform={share} onBack={() => setShare("sheet")} t={t} />
+            )}
           </AnimatePresence>
         </div>
       </div>
-      <p className="hidden pb-6 font-mono text-[10px] tracking-[0.2em] sm:block" style={{ color: "rgba(255,255,255,0.35)" }}>
-        WIDGET → DETAIL → RUN · ONE BACK PER LEVEL
-      </p>
     </main>
   );
 }
