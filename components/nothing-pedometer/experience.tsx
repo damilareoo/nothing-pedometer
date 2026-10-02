@@ -162,6 +162,62 @@ function HourlyBars({ t }: { t: Tokens }) {
   );
 }
 
+/** One chart, two ranges — Apple's Day/Week switcher in Nothing's language. */
+function ActivityCard({ t }: { t: Tokens }) {
+  const [range, setRange] = useState<"day" | "week">("day");
+  const reduced = useReducedMotion();
+  return (
+    <div className="rounded-[20px] p-[18px]" style={{ background: t.card }}>
+      <div className="flex items-center justify-between">
+        <p className={SANS_LABEL} style={{ color: t.dim }}>
+          Activity
+        </p>
+        <div className="flex rounded-full p-[3px]" style={{ background: t.faint }} role="group" aria-label="Chart range">
+          {(["day", "week"] as const).map((r) => {
+            const active = range === r;
+            return (
+              <button
+                key={r}
+                type="button"
+                onClick={() => setRange(r)}
+                aria-pressed={active}
+                className="relative rounded-full px-3 py-1 font-mono text-[9px] tracking-[0.16em]"
+                style={{ color: active ? t.ground : t.dim }}
+              >
+                {active && (
+                  <motion.span
+                    layoutId="range-thumb"
+                    className="absolute inset-0 rounded-full"
+                    style={{ background: t.dot }}
+                    transition={{ duration: DUR.base, ease: EASE_OUT }}
+                  />
+                )}
+                <span className="relative">{r === "day" ? "DAY" : "WEEK"}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+      <div className="mt-3 min-h-[104px]">
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.div
+            key={range}
+            initial={{ opacity: 0, y: reduced ? 0 : 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: reduced ? 0 : -8 }}
+            transition={{ duration: DUR.micro, ease: EASE_OUT }}
+          >
+            {range === "day" ? <HourlyBars t={t} /> : <WeekDots today={6} t={t} />}
+          </motion.div>
+        </AnimatePresence>
+      </div>
+      <p className="mt-2.5 font-mono text-[10px] tracking-[0.14em]" style={{ color: t.dim }}>
+        {range === "day" ? "PEAK 18:00 · 1,240 STEPS" : "AVG 7,305 · BEST THU 10,240"}
+      </p>
+    </div>
+  );
+}
+
 function Stat({ label, value, sub, t }: { label: string; value: string; sub?: string; t: Tokens }) {
   return (
     <div className="rounded-[18px] p-3.5" style={{ background: t.card }}>
@@ -299,11 +355,11 @@ function ClockFace({ time, t }: { time: string; t: Tokens }) {
 /** Date + weather squircle, dot-matrix capitals exactly like the device. */
 function DateCard({ weekday, dayMonth, t }: { weekday: string; dayMonth: string; t: Tokens }) {
   return (
-    <div className="flex flex-1 flex-col justify-center gap-[7px] rounded-[24px] p-4" style={{ background: t.widget }}>
-      <DotText text={weekday} dot={1.9} pitch={7} color={t.dot} dimOpacity={t.unlit} />
-      <DotText text={dayMonth} dot={1.9} pitch={7} color={t.dot} dimOpacity={t.unlit} />
-      <DotText text="PARTLY SUNNY" dot={1.5} pitch={5.4} color={t.dot} dimOpacity={t.unlit} />
-      <DotText text="25°" dot={1.9} pitch={7} color={t.dot} dimOpacity={t.unlit} />
+    <div className="flex flex-1 flex-col justify-center gap-[8px] rounded-[24px] p-4" style={{ background: t.widget }}>
+      <DotText text={weekday} dot={2.2} pitch={5.4} color={t.dot} dimOpacity={t.unlit} />
+      <DotText text={dayMonth} dot={2.2} pitch={5.4} color={t.dot} dimOpacity={t.unlit} />
+      <DotText text="PARTLY SUNNY" dot={1.2} pitch={2.8} color={t.dot} dimOpacity={t.unlit} />
+      <DotText text="25°" dot={2.2} pitch={5.4} color={t.dot} dimOpacity={t.unlit} />
     </div>
   );
 }
@@ -325,17 +381,17 @@ function PedoWidget({ onOpen, shellId, t }: { onOpen: () => void; shellId?: stri
       className="block w-[184px] rounded-[24px] p-[15px] text-left"
       style={{ background: t.widget }}
     >
-      <DotText text="162" dot={2.3} pitch={8.6} color={t.dot} dimOpacity={t.unlit} label="162" />
+      <DotText text="162" dot={2.1} pitch={5.2} color={t.dot} dimOpacity={t.unlit} label="162" />
       <span className={`${row} mt-[7px]`}>
-        <DotText text="TOTAL TODAY" dot={0.85} pitch={3.3} color={t.dot} dimOpacity={t.unlit} />
+        <DotText text="TOTAL TODAY" dot={0.75} pitch={1.65} color={t.dot} dimOpacity={t.unlit} />
         <span className="font-mono text-[10px]" style={{ color: t.dim }}>
           1%
         </span>
       </span>
       <span className="my-[11px] block h-px" style={{ background: t.faint }} aria-hidden />
-      <DotText text="7,442" dot={2.3} pitch={8.6} color={t.dot} dimOpacity={t.unlit} label="7,442" />
+      <DotText text="7,442" dot={2.1} pitch={5.2} color={t.dot} dimOpacity={t.unlit} label="7,442" />
       <span className={`${row} mt-[7px]`}>
-        <DotText text="7-DAY AVERAGE" dot={0.85} pitch={3.3} color={t.dot} dimOpacity={t.unlit} />
+        <DotText text="7-DAY AVERAGE" dot={0.75} pitch={1.65} color={t.dot} dimOpacity={t.unlit} />
         <span className="font-mono text-[10px]" style={{ color: t.dim }}>
           74%
         </span>
@@ -462,35 +518,7 @@ function DetailScreen({
         </div>
 
         <div className="px-4 pt-2.5">
-          <div className="rounded-[20px] p-[18px]" style={{ background: t.card }}>
-            <div className="flex items-baseline justify-between">
-              <p className={SANS_LABEL} style={{ color: t.dim }}>
-                7-day steps
-              </p>
-              <p className="font-mono text-[10px]" style={{ color: t.dim }}>
-                AVG 7,305
-              </p>
-            </div>
-            <div className="mt-3">
-              <WeekDots today={6} t={t} />
-            </div>
-          </div>
-        </div>
-
-        <div className="px-4 pt-2.5">
-          <div className="rounded-[20px] p-[18px]" style={{ background: t.card }}>
-            <div className="flex items-baseline justify-between">
-              <p className={SANS_LABEL} style={{ color: t.dim }}>
-                Hourly
-              </p>
-              <p className="font-mono text-[10px]" style={{ color: t.dim }}>
-                PEAK 18:00
-              </p>
-            </div>
-            <div className="mt-3">
-              <HourlyBars t={t} />
-            </div>
-          </div>
+          <ActivityCard t={t} />
         </div>
 
         <div className="px-4 pt-2.5">
