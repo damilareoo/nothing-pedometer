@@ -29,6 +29,9 @@ export type Tokens = {
   red: string;
   /** Dot-matrix ink. */
   dot: string;
+  /** Optical correction: light-mode dots render slightly smaller to match
+      dark-mode weight (bright-on-dark always reads larger). */
+  dotScale: number;
   /** Opacity of unlit matrix dots. */
   unlit: number;
   /** Homescreen wallpaper behind widgets. */
@@ -55,6 +58,7 @@ export const THEMES: Record<ThemeName, Tokens> = {
     faint: "rgba(255,255,255,0.14)",
     red: "#E11A1B",
     dot: "#FFFFFF",
+    dotScale: 1,
     unlit: 0.09,
     wallpaper:
       "radial-gradient(120% 90% at 85% 0%, #343B52 0%, transparent 55%), radial-gradient(110% 85% at 90% 55%, #4A3440 0%, transparent 60%), radial-gradient(90% 70% at 8% 100%, #83838B 0%, transparent 55%), #101014",
@@ -71,7 +75,8 @@ export const THEMES: Record<ThemeName, Tokens> = {
     dim: "rgba(10,10,10,0.55)",
     faint: "rgba(10,10,10,0.12)",
     red: "#E11A1B",
-    dot: "#0A0A0A",
+    dot: "#2B2B30",
+    dotScale: 0.86,
     unlit: 0.08,
     wallpaper:
       "radial-gradient(120% 90% at 85% 0%, #C3CEE8 0%, transparent 55%), radial-gradient(110% 85% at 90% 55%, #E6C6D2 0%, transparent 60%), radial-gradient(90% 70% at 8% 100%, #FFFFFF 0%, transparent 55%), #D8DBE1",

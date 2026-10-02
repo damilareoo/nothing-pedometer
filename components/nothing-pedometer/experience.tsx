@@ -100,6 +100,11 @@ function useCountUp(target: number, go: number): number {
 
 /* -------------------------------- components ------------------------------- */
 
+/** Themed dot-matrix: ink, unlit floor, and optical size all come from tokens. */
+function Matrix({ t, text, dot = 2.4, pitch = 8, label }: { t: Tokens; text: string; dot?: number; pitch?: number; label?: string }) {
+  return <DotText text={text} dot={dot * t.dotScale} pitch={pitch} color={t.dot} dimOpacity={t.unlit} label={label} />;
+}
+
 /** A dotted progress line: lit dots up to `frac`, dim matrix after. */
 function DottedLine({ frac, total = 30, t }: { frac: number; total?: number; t: Tokens }) {
   const on = Math.round(frac * total);
@@ -356,10 +361,10 @@ function ClockFace({ time, t }: { time: string; t: Tokens }) {
 function DateCard({ weekday, dayMonth, t }: { weekday: string; dayMonth: string; t: Tokens }) {
   return (
     <div className="flex flex-1 flex-col justify-center gap-[8px] rounded-[24px] p-4" style={{ background: t.widget, border: `1px solid ${t.edge}`, boxShadow: t.pop }}>
-      <DotText text={weekday} dot={2.2} pitch={5.4} color={t.dot} dimOpacity={t.unlit} />
-      <DotText text={dayMonth} dot={2.2} pitch={5.4} color={t.dot} dimOpacity={t.unlit} />
-      <DotText text="PARTLY SUNNY" dot={1.2} pitch={2.8} color={t.dot} dimOpacity={t.unlit} />
-      <DotText text="25°" dot={2.2} pitch={5.4} color={t.dot} dimOpacity={t.unlit} />
+      <Matrix t={t} text={weekday} dot={2.2} pitch={5.4} />
+      <Matrix t={t} text={dayMonth} dot={2.2} pitch={5.4} />
+      <Matrix t={t} text="PARTLY SUNNY" dot={1.2} pitch={2.8} />
+      <Matrix t={t} text="25°" dot={2.2} pitch={5.4} />
     </div>
   );
 }
@@ -381,17 +386,17 @@ function PedoWidget({ onOpen, shellId, t }: { onOpen: () => void; shellId?: stri
       className="block w-[184px] rounded-[24px] p-[15px] text-left"
       style={{ background: t.widget, border: `1px solid ${t.edge}`, boxShadow: t.pop }}
     >
-      <DotText text="162" dot={2.1} pitch={5.2} color={t.dot} dimOpacity={t.unlit} label="162" />
+      <Matrix t={t} text="162" dot={2.1} pitch={5.2} label="162" />
       <span className={`${row} mt-[7px]`}>
-        <DotText text="TOTAL TODAY" dot={0.75} pitch={1.65} color={t.dot} dimOpacity={t.unlit} />
+        <Matrix t={t} text="TOTAL TODAY" dot={0.75} pitch={1.65} />
         <span className="font-mono text-[10px]" style={{ color: t.dim }}>
           1%
         </span>
       </span>
       <span className="my-[11px] block h-px" style={{ background: t.faint }} aria-hidden />
-      <DotText text="7,442" dot={2.1} pitch={5.2} color={t.dot} dimOpacity={t.unlit} label="7,442" />
+      <Matrix t={t} text="7,442" dot={2.1} pitch={5.2} label="7,442" />
       <span className={`${row} mt-[7px]`}>
-        <DotText text="7-DAY AVERAGE" dot={0.75} pitch={1.65} color={t.dot} dimOpacity={t.unlit} />
+        <Matrix t={t} text="7-DAY AVERAGE" dot={0.75} pitch={1.65} />
         <span className="font-mono text-[10px]" style={{ color: t.dim }}>
           74%
         </span>
@@ -501,7 +506,7 @@ function DetailScreen({
 
         <div className="px-4 pt-4">
           <div className="rounded-[20px] p-[18px]" style={{ background: t.card, border: `1px solid ${t.edge}`, boxShadow: t.pop }}>
-            <DotText text={steps.toLocaleString("en-US")} dot={2.9} pitch={10.5} color={t.dot} dimOpacity={t.unlit} label={`${steps} steps`} />
+            <Matrix t={t} text={steps.toLocaleString("en-US")} dot={2.9} pitch={10.5} label={`${steps} steps`} />
             <div className="mt-3.5">
               <DottedLine frac={STEPS / GOAL} total={32} t={t} />
             </div>
@@ -573,7 +578,7 @@ function RunScreen({ onBack, t }: { onBack: () => void; t: Tokens }) {
         </p>
 
         <div className="px-4 pt-4">
-          <DotText text={RUN.dist} dot={3.2} pitch={12} color={t.dot} dimOpacity={t.unlit} label={`${RUN.dist} kilometres`} />
+          <Matrix t={t} text={RUN.dist} dot={3.2} pitch={12} label={`${RUN.dist} kilometres`} />
         </div>
 
         <div className="px-4 pt-3">
