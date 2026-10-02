@@ -36,8 +36,10 @@ export type Tokens = {
   unlit: number;
   /** Homescreen wallpaper behind widgets. */
   wallpaper: string;
-  /** Dock + search surfaces. */
+  /** Dock discs stay black in both themes; only their glyphs adapt. */
   dock: string;
+  /** Glyph ink on the dock discs. */
+  onDock: string;
   /** Display serif for OS 4.1 page titles ("About phone"). */
   serif: string;
   /** Hairline edge so white surfaces read on pale wallpaper. Transparent in dark. */
@@ -63,6 +65,7 @@ export const THEMES: Record<ThemeName, Tokens> = {
     wallpaper:
       "radial-gradient(120% 90% at 85% 0%, #343B52 0%, transparent 55%), radial-gradient(110% 85% at 90% 55%, #4A3440 0%, transparent 60%), radial-gradient(90% 70% at 8% 100%, #83838B 0%, transparent 55%), #101014",
     dock: "#1B1A1F",
+    onDock: "rgba(255,255,255,0.85)",
     serif: SERIF,
     edge: "transparent",
     pop: "none",
@@ -80,7 +83,8 @@ export const THEMES: Record<ThemeName, Tokens> = {
     unlit: 0.08,
     wallpaper:
       "radial-gradient(120% 90% at 85% 0%, #C3CEE8 0%, transparent 55%), radial-gradient(110% 85% at 90% 55%, #E6C6D2 0%, transparent 60%), radial-gradient(90% 70% at 8% 100%, #FFFFFF 0%, transparent 55%), #D8DBE1",
-    dock: "#FFFFFF",
+    dock: "#1B1A1F",
+    onDock: "#FFFFFF",
     serif: SERIF,
     edge: "rgba(10,10,10,0.10)",
     pop: "0 10px 28px rgba(10,10,10,0.10)",

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { DUR, EASE_OUT, STAGGER, useReducedMotion } from "@/lib/motion";
+import { DUR, EASE_EMPHASIZED, EASE_OUT, STAGGER, useReducedMotion } from "@/lib/motion";
 import { THEMES, type ThemeName, type Tokens } from "@/lib/theme";
 import { ArrowRight, CameraIcon, ChevronLeft, GearIcon, MessageIcon, PhoneIcon, SearchIcon } from "./icons";
 import { DotText } from "./dot-matrix";
@@ -428,7 +428,7 @@ function PedoWidget({ onOpen, shellId, t }: { onOpen: () => void; shellId?: stri
       onClick={onOpen}
       layoutId={shellId}
       whileTap={{ scale: 0.96 }}
-      transition={{ duration: DUR.base, ease: EASE_OUT }}
+      transition={{ duration: DUR.morph, ease: EASE_EMPHASIZED }}
       aria-label="Open pedometer details: 162 total today, 7,442 seven-day average"
       className="block w-[184px] rounded-[24px] p-[15px] text-left"
       style={{ background: t.widget, border: `1px solid ${t.edge}`, boxShadow: t.pop }}
@@ -462,7 +462,7 @@ function Dock({ t }: { t: Tokens }) {
           { id: "camera", Icon: CameraIcon },
           { id: "settings", Icon: GearIcon },
         ].map(({ id, Icon }) => (
-          <div key={id} className="flex items-center justify-center rounded-full" style={{ background: t.dock, border: `1px solid ${t.edge}`, boxShadow: t.pop, aspectRatio: "1", color: t.dim }}>
+          <div key={id} className="flex items-center justify-center rounded-full" style={{ background: t.dock, aspectRatio: "1", color: t.onDock }}>
             <Icon size={22} />
           </div>
         ))}
@@ -493,8 +493,7 @@ function HomeScreen({
     <motion.div
       className="absolute inset-0 flex flex-col"
       style={{ background: t.wallpaper }}
-      exit={{ opacity: 0, scale: 0.98 }}
-      transition={{ duration: DUR.base, ease: EASE_OUT }}
+      exit={{ opacity: 0, scale: 0.98, transition: { duration: DUR.fast, ease: EASE_OUT } }}
     >
       <StatusBar time={now.time} t={t} onWidget={false} />
       <div className="flex items-start gap-3 px-4 pt-4">
@@ -528,7 +527,7 @@ function DetailScreen({
   return (
     <motion.div
       layoutId={shellId}
-      transition={{ duration: DUR.base, ease: EASE_OUT }}
+      transition={{ duration: DUR.morph, ease: EASE_EMPHASIZED }}
       className="absolute inset-0 flex flex-col overflow-hidden"
       style={{ background: t.ground }}
     >
@@ -604,8 +603,8 @@ function RunScreen({ onBack, onShare, t }: { onBack: () => void; onShare: () => 
       style={{ background: t.ground }}
       initial={{ x: "100%" }}
       animate={{ x: 0 }}
-      exit={{ x: "100%" }}
-      transition={{ duration: reduced ? 0 : DUR.base, ease: EASE_OUT }}
+      exit={{ x: "100%", transition: { duration: DUR.fast, ease: EASE_OUT } }}
+      transition={{ duration: reduced ? 0 : DUR.morph, ease: EASE_EMPHASIZED }}
     >
       <div className="no-scrollbar flex-1 overflow-y-auto pb-9">
         <div className="flex items-center justify-between px-5 pt-5">
@@ -762,8 +761,8 @@ function ShareSheet({ t, onPick, onClose }: { t: Tokens; onPick: (p: Exclude<Sha
         style={{ background: t.card }}
         initial={{ y: "100%" }}
         animate={{ y: 0 }}
-        exit={{ y: "100%" }}
-        transition={{ duration: DUR.base, ease: EASE_OUT }}
+        exit={{ y: "100%", transition: { duration: DUR.fast, ease: EASE_OUT } }}
+        transition={{ duration: DUR.morph, ease: EASE_EMPHASIZED }}
       >
         <div className="mx-auto h-[4px] w-[40px] rounded-full" style={{ background: t.faint }} />
         <p className="pt-3 font-mono text-[10px] uppercase tracking-[0.22em]" style={{ color: t.dim }}>
@@ -778,8 +777,8 @@ function ShareSheet({ t, onPick, onClose }: { t: Tokens; onPick: (p: Exclude<Sha
               <span className="font-mono text-[12px] tracking-[0.16em]" style={{ color: t.ink }}>
                 {r.label}
               </span>
-              <span className="ml-auto" style={{ color: t.dim }}>
-                →
+              <span className="ml-auto flex" style={{ color: t.dim }} aria-hidden>
+                <ArrowRight size={15} />
               </span>
             </button>
           ))}
@@ -880,8 +879,8 @@ function SharePreview({ platform, t, onBack }: { platform: Exclude<ShareTarget, 
       style={{ background: t.ground }}
       initial={{ x: "100%" }}
       animate={{ x: 0 }}
-      exit={{ x: "100%" }}
-      transition={{ duration: reduced ? 0 : DUR.base, ease: EASE_OUT }}
+      exit={{ x: "100%", transition: { duration: DUR.fast, ease: EASE_OUT } }}
+      transition={{ duration: reduced ? 0 : DUR.morph, ease: EASE_EMPHASIZED }}
     >
       <div className="flex items-center justify-between px-5 pt-5">
         <button
