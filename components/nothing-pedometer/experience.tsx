@@ -865,6 +865,9 @@ function ShareSheet({ t, onPick, onClose }: { t: Tokens; onPick: (p: Exclude<Sha
       <motion.div
         className="absolute inset-x-0 bottom-0 rounded-t-[28px] px-5 pb-7 pt-3"
         style={{ background: t.card }}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Share run"
         initial={{ y: "100%" }}
         animate={{ y: 0 }}
         exit={{ y: "100%", transition: { duration: DUR.fast, ease: EASE_OUT } }}
@@ -877,7 +880,7 @@ function ShareSheet({ t, onPick, onClose }: { t: Tokens; onPick: (p: Exclude<Sha
         <div className="pt-1">
           {rows.map((r) => (
             <button key={r.id} type="button" onClick={() => onPick(r.id)} className="flex w-full items-center gap-3.5 py-3 text-left">
-              <span className="flex h-10 w-10 items-center justify-center rounded-full font-mono text-[10px]" style={{ background: t.faint, color: t.ink }}>
+              <span aria-hidden className="flex h-10 w-10 items-center justify-center rounded-full font-mono text-[10px]" style={{ background: t.faint, color: t.ink }}>
                 {r.mark}
               </span>
               <span className="font-mono text-[12px] tracking-[0.16em]" style={{ color: t.ink }}>
@@ -893,7 +896,7 @@ function ShareSheet({ t, onPick, onClose }: { t: Tokens; onPick: (p: Exclude<Sha
             onClick={() => { setCopied(true); onPick("copy"); }}
             className="flex w-full items-center gap-3.5 py-3 text-left"
           >
-            <span className="flex h-10 w-10 items-center justify-center rounded-full font-mono text-[10px]" style={{ background: t.faint, color: t.ink }}>
+            <span aria-hidden className="flex h-10 w-10 items-center justify-center rounded-full font-mono text-[10px]" style={{ background: t.faint, color: t.ink }}>
               {copied ? "✓" : "URL"}
             </span>
             <span className="font-mono text-[12px] tracking-[0.16em]" style={{ color: t.ink }}>

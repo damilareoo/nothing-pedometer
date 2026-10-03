@@ -60,4 +60,9 @@ describe("reduced motion", () => {
       expect(src).not.toContain(stale);
     }
   });
+
+  it("announces the share sheet as a dialog without double-speaking", () => {
+    expect(src).toContain('role="dialog"');
+    expect(src).toContain('aria-modal="true"');
+  });
 });
