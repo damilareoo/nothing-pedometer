@@ -5,7 +5,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { DUR, EASE_EMPHASIZED, EASE_OUT, STAGGER, useReducedMotion } from "@/lib/motion";
 import { THEMES, type ThemeName, type Tokens } from "@/lib/theme";
 import { SHARE_CANVASES, photoCanvas, type ShareCanvas } from "@/lib/share-canvases";
-import { ArrowLeft, ArrowRight, CameraIcon, GearIcon, MessageIcon, PhoneIcon, SearchIcon } from "./icons";
+import { ArrowLeft, ArrowRight, CameraIcon, CopyIcon, GearIcon, MessageIcon, PhoneIcon, SearchIcon } from "./icons";
 import { DotText } from "./dot-matrix";
 
 /**
@@ -861,10 +861,10 @@ function ShareSheet({ t, onPick, onClose }: { t: Tokens; onPick: (p: Exclude<Sha
     const id = setTimeout(() => setCopied(false), 1600);
     return () => clearTimeout(id);
   }, [copied]);
-  const rows = [
-    { id: "x", label: "X POST", mark: "X" },
-    { id: "instagram", label: "INSTAGRAM STORY", mark: "IG" },
-    { id: "whatsapp", label: "WHATSAPP", mark: "WA" },
+  const targets = [
+    { id: "x", label: "X", mark: "X" },
+    { id: "instagram", label: "Instagram", mark: "IG" },
+    { id: "whatsapp", label: "WhatsApp", mark: "WA" },
   ] as const;
   return (
     <>
@@ -890,44 +890,30 @@ function ShareSheet({ t, onPick, onClose }: { t: Tokens; onPick: (p: Exclude<Sha
         transition={{ duration: DUR.morph, ease: EASE_EMPHASIZED }}
       >
         <div className="mx-auto h-[4px] w-[40px] rounded-full" style={{ background: t.faint }} />
-        <p className="pt-3 font-mono text-[10px] uppercase tracking-[0.22em]" style={{ color: t.dim }}>
-          Share run
-        </p>
-        <div className="pt-1">
-          {rows.map((r) => (
-            <button key={r.id} type="button" onClick={() => onPick(r.id)} className="flex w-full items-center gap-3.5 py-3 text-left">
-              <span aria-hidden className="flex h-10 w-10 items-center justify-center rounded-full font-mono text-[10px]" style={{ background: t.faint, color: t.ink }}>
-                {r.mark}
-              </span>
-              <span className="font-mono text-[12px] tracking-[0.16em]" style={{ color: t.ink }}>
-                {r.label}
-              </span>
-              <span className="ml-auto flex" style={{ color: t.dim }} aria-hidden>
-                <ArrowRight size={15} />
-              </span>
-            </button>
-          ))}
+        <div className="grid grid-cols-4 gap-1 pt-3" role="group" aria-label="Share targets">
           <button
             type="button"
             onClick={() => { setCopied(true); onPick("copy"); }}
-            className="flex w-full items-center gap-3.5 py-3 text-left"
+            className="flex flex-col items-center gap-2 py-2"
           >
-            <span aria-hidden className="flex h-10 w-10 items-center justify-center rounded-full font-mono text-[10px]" style={{ background: t.faint, color: t.ink }}>
-              {copied ? "✓" : "URL"}
+            <span className="flex h-12 w-12 items-center justify-center rounded-full" style={{ background: t.faint, color: t.ink }} aria-hidden>
+              <CopyIcon size={19} />
             </span>
-            <span className="font-mono text-[12px] tracking-[0.16em]" style={{ color: t.ink }}>
-              {copied ? "LINK COPIED" : "COPY LINK"}
+            <span className="font-mono text-[9px] tracking-[0.12em]" style={{ color: t.ink }} aria-live="polite">
+              {copied ? "Copied" : "Copy"}
             </span>
           </button>
+          {targets.map((r) => (
+            <button key={r.id} type="button" onClick={() => onPick(r.id)} className="flex flex-col items-center gap-2 py-2">
+              <span className="flex h-12 w-12 items-center justify-center rounded-full font-mono text-[10px]" style={{ background: t.faint, color: t.ink }} aria-hidden>
+                {r.mark}
+              </span>
+              <span className="font-mono text-[9px] tracking-[0.12em]" style={{ color: t.ink }}>
+                {r.label}
+              </span>
+            </button>
+          ))}
         </div>
-        <button
-          type="button"
-          onClick={onClose}
-          className="mt-2 w-full rounded-2xl py-3 font-mono text-[12px] tracking-[0.18em]"
-          style={{ background: t.faint, color: t.ink }}
-        >
-          CANCEL
-        </button>
       </motion.div>
     </>
   );

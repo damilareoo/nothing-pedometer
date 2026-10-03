@@ -66,6 +66,11 @@ describe("reduced motion", () => {
     expect(src).toContain('aria-modal="true"');
   });
 
+  it("speaks system share: target grid, scrim dismiss, no cancel button", () => {
+    expect(src).toContain('aria-label="Share targets"');
+    expect(src).not.toContain("CANCEL");
+  });
+
   it("groups the date card as one announcement", () => {
     expect(src).toContain("partly sunny 25 degrees");
   });
