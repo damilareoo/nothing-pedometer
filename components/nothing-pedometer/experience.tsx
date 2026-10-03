@@ -404,7 +404,15 @@ function RouteMap({ reduced, t, privateZones }: { reduced: boolean; t: Tokens; p
         <circle cx={ends.ex} cy={ends.ey} r={5} fill={t.red} />
       </g>
       {privateZones && (
-        <text x={ends.sx} y={ends.sy + 20} textAnchor="middle" fill={t.dim} fontSize={9} fontFamily="monospace" letterSpacing={2}>
+        <text
+          x={ends.sx < 80 ? ends.sx + 10 : ends.sx}
+          y={ends.sy + 20}
+          textAnchor={ends.sx < 80 ? "start" : "middle"}
+          fill={t.dim}
+          fontSize={9}
+          fontFamily="monospace"
+          letterSpacing={2}
+        >
           HOME ZONE HIDDEN
         </text>
       )}

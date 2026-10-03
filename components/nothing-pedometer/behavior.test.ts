@@ -79,6 +79,11 @@ describe("reduced motion", () => {
     expect(src).not.toContain("Chevron");
   });
 
+  it("keeps the hidden-zone label inside the viewport", () => {
+    expect(src).toContain("HOME ZONE HIDDEN");
+    expect(src).toContain('ends.sx < 80 ? "start" : "middle"');
+  });
+
   it("shows the privacy toggle armed, like the OS master switch", () => {
     expect(src).toContain("{privacy && <span");
   });
