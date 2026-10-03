@@ -73,4 +73,9 @@ describe("reduced motion", () => {
   it("marks the live position red on the goal line, like the OS range bars", () => {
     expect(src).toContain("isNow ? t.red");
   });
+
+  it("goes back with the OS arrow, never a chevron", () => {
+    expect(src).toContain("<ArrowLeft size={20} />");
+    expect(src).not.toContain("Chevron");
+  });
 });

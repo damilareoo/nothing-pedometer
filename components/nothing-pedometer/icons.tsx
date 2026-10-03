@@ -29,10 +29,11 @@ function Base({ size = 18, className, children, label }: P & { children: React.R
   );
 }
 
-export function ChevronLeft(p: P) {
+export function ArrowLeft(p: P) {
   return (
     <Base {...p} label="Back">
-      <path d="M15 18l-6-6 6-6" />
+      <path d="M19 12H5" />
+      <path d="M12 19l-7-7 7-7" />
     </Base>
   );
 }

@@ -5,7 +5,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { DUR, EASE_EMPHASIZED, EASE_OUT, STAGGER, useReducedMotion } from "@/lib/motion";
 import { THEMES, type ThemeName, type Tokens } from "@/lib/theme";
 import { SHARE_CANVASES, photoCanvas, type ShareCanvas } from "@/lib/share-canvases";
-import { ArrowRight, CameraIcon, ChevronLeft, GearIcon, MessageIcon, PhoneIcon, SearchIcon } from "./icons";
+import { ArrowLeft, ArrowRight, CameraIcon, GearIcon, MessageIcon, PhoneIcon, SearchIcon } from "./icons";
 import { DotText } from "./dot-matrix";
 
 /**
@@ -602,7 +602,7 @@ function DetailScreen({
             className="flex h-9 w-9 items-center justify-center rounded-full"
             style={{ color: t.ink }}
           >
-            <ChevronLeft size={20} />
+            <ArrowLeft size={20} />
           </button>
         </div>
         <h1 className="px-5 pt-2 text-[46px] leading-none" style={{ fontFamily: t.serif, color: t.ink }}>
@@ -683,7 +683,7 @@ function RunScreen({ onBack, onShare, privacy, setPrivacy, t }: { onBack: () => 
             className="flex h-9 w-9 items-center justify-center rounded-full"
             style={{ color: t.ink }}
           >
-            <ChevronLeft size={20} />
+            <ArrowLeft size={20} />
           </button>
           <button
             type="button"
@@ -1032,7 +1032,7 @@ function SharePreview({ platform, privacy, t, onBack }: { platform: Exclude<Shar
           className="flex h-9 w-9 items-center justify-center rounded-full"
           style={{ color: t.ink }}
         >
-          <ChevronLeft size={20} />
+          <ArrowLeft size={20} />
         </button>
         <p className={MICRO} style={{ color: t.dim }}>
           {names[platform]}
