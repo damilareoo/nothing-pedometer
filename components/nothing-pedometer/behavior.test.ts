@@ -45,4 +45,10 @@ describe("reduced motion", () => {
     expect(src).toContain("URL.revokeObjectURL");
     expect(src).toContain("canvas.image");
   });
+
+  it("lets every chart speak and derives its words from the data", () => {
+    expect(src).toContain("Steps this week, best");
+    expect(src).toContain("Steps by hour today, peak");
+    expect(src).toContain("today={WEEK.length - 1}");
+  });
 });

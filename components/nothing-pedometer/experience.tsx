@@ -51,6 +51,7 @@ const BEST_IDX = WEEK.reduce((bi, b, i) => (b.v > WEEK[bi].v ? i : bi), 0);
 const WEEK_BEST = `${WEEK_DAYS[BEST_IDX]} ${WEEK[BEST_IDX].v.toLocaleString("en-US")}`;
 
 const HOURLY = [0, 0, 0, 0, 0, 0, 120, 680, 420, 180, 240, 310, 520, 280, 190, 340, 410, 860, 1240, 540, 220, 90, 20, 0];
+const PEAK_HOUR = HOURLY.indexOf(Math.max(...HOURLY));
 
 const RUN = { dist: "5.2", time: "32:14", pace: "6'12''", kcal: "268", when: "06:42" };
 
@@ -156,7 +157,7 @@ function WeekDots({ today, t }: { today: number; t: Tokens }) {
   const max = Math.max(...WEEK.map((w) => w.v));
   const ROWS = 14;
   return (
-    <div className="flex items-stretch justify-between gap-1">
+    <div className="flex items-stretch justify-between gap-1" role="img" aria-label={`Steps this week, best ${WEEK_BEST}`}>
       {WEEK.map((b, i) => {
         const lit = Math.max(1, Math.round((b.v / max) * ROWS));
         const isToday = i === today;
@@ -186,7 +187,7 @@ function HourlyDots({ t }: { t: Tokens }) {
   const max = Math.max(...HOURLY);
   const ROWS = 12;
   return (
-    <div>
+    <div role="img" aria-label={`Steps by hour today, peak ${PEAK_HOUR}:00`}>
       <div className="flex h-[76px] items-end gap-[2.5px]" aria-hidden>
         {HOURLY.map((v, i) => {
           const lit = Math.round((v / max) * ROWS);
@@ -259,7 +260,7 @@ function ActivityCard({ t }: { t: Tokens }) {
             exit={{ opacity: 0, y: reduced ? 0 : -8 }}
             transition={{ duration: DUR.micro, ease: EASE_OUT }}
           >
-            {range === "day" ? <HourlyDots t={t} /> : <WeekDots today={6} t={t} />}
+            {range === "day" ? <HourlyDots t={t} /> : <WeekDots today={WEEK.length - 1} t={t} />}
           </motion.div>
         </AnimatePresence>
       </div>
@@ -1033,7 +1034,7 @@ function SharePreview({ platform, privacy, t, onBack }: { platform: Exclude<Shar
       <div className="no-scrollbar flex-1 overflow-y-auto px-4 pb-8 pt-4">
         <div className="flex items-center justify-between pb-3">
           <p className={MICRO} style={{ color: t.dim }}>
-            Canvas · {canvas.label}
+            Canvas · {canvasId === "photo" ? "Photo" : canvas.label}
           </p>
           <div className="flex gap-2" role="group" aria-label="Share card canvas">
             {SHARE_CANVASES.map((c) => {
