@@ -771,28 +771,28 @@ function RunScreen({ onBack, onShare, privacy, setPrivacy, t }: { onBack: () => 
 
 type ShareTarget = "sheet" | "x" | "instagram" | "whatsapp";
 
-/** The artifact: what actually travels when a run is shared. Always black. */
-function ShareCard({ privateZones }: { privateZones: boolean }) {
+/** The artifact: what actually travels when a run is shared. Follows the theme. */
+function ShareCard({ t, privateZones }: { t: Tokens; privateZones: boolean }) {
   return (
-    <div className="rounded-[18px] bg-[#0B0B0D] p-4">
-      <p className="font-mono text-[9px] uppercase tracking-[0.22em]" style={{ color: "rgba(255,255,255,0.55)" }}>
+    <div className="rounded-[18px] p-4" style={{ background: t.widget, border: `1px solid ${t.edge}`, boxShadow: t.pop }}>
+      <p className="font-mono text-[9px] uppercase tracking-[0.22em]" style={{ color: t.dim }}>
         Morning run · 06:42{privateZones ? " · HOME HIDDEN" : ""}
       </p>
       <div className="mt-1.5">
-        <DotText text="5.2" dot={3.4} pitch={10.5} color="#fff" dimOpacity={0.09} label="5.2 kilometres" />
+        <DotText text="5.2" dot={3.4 * t.dotScale} pitch={10.5} color={t.dot} dimOpacity={t.unlit} label="5.2 kilometres" />
       </div>
-      <p className="mt-1 font-mono text-[10px] tracking-[0.24em] text-white">KILOMETRES</p>
+      <p className="mt-1 font-mono text-[10px] tracking-[0.24em]" style={{ color: t.ink }}>KILOMETRES</p>
       <svg viewBox="0 0 360 250" className="mt-2 h-auto w-full" role="img" aria-label="Run route">
-        <path d={ROUTE} fill="none" stroke="rgba(255,255,255,0.9)" strokeWidth={6} strokeLinecap="round" strokeDasharray="0.1 10" />
-        <circle cx={44} cy={200} r={7} fill="#fff" opacity={privateZones ? 0.2 : 1} />
-        <circle cx={96} cy={200} r={7} fill="#E11A1B" opacity={privateZones ? 0.2 : 1} />
+        <path d={ROUTE} fill="none" stroke={t.dot} strokeOpacity={0.9} strokeWidth={6} strokeLinecap="round" strokeDasharray="0.1 10" />
+        <circle cx={44} cy={200} r={7} fill={t.dot} opacity={privateZones ? 0.2 : 1} />
+        <circle cx={96} cy={200} r={7} fill={t.red} opacity={privateZones ? 0.2 : 1} />
       </svg>
-      <div className="mt-2 flex justify-between font-mono text-[11px] text-white">
+      <div className="mt-2 flex justify-between font-mono text-[11px]" style={{ color: t.ink }}>
         <span>32:14</span>
         <span>6&apos;12&apos;&apos;/KM</span>
         <span>268 KCAL</span>
       </div>
-      <p className="mt-2.5 font-mono text-[8px] uppercase tracking-[0.26em]" style={{ color: "rgba(255,255,255,0.45)" }}>
+      <p className="mt-2.5 font-mono text-[8px] uppercase tracking-[0.26em]" style={{ color: t.dim }}>
         Nothing · Pedometer
       </p>
     </div>
@@ -875,7 +875,7 @@ function ShareSheet({ t, onPick, onClose }: { t: Tokens; onPick: (p: Exclude<Sha
   );
 }
 
-function XPost({ privacy }: { privacy: boolean }) {
+function XPost({ t, privacy }: { t: Tokens; privacy: boolean }) {
   return (
     <div className="rounded-[20px] border border-white/10 bg-black p-4">
       <div className="flex items-center gap-2.5">
@@ -891,7 +891,7 @@ function XPost({ privacy }: { privacy: boolean }) {
       </div>
       <p className="pt-2.5 text-[13px] text-white">Morning loop: 5.2 km in 32:14.</p>
       <div className="pt-2.5">
-        <ShareCard privateZones={privacy} />
+        <ShareCard t={t} privateZones={privacy} />
       </div>
       <div className="flex gap-6 pt-3 font-mono text-[10px]" style={{ color: "rgba(255,255,255,0.5)" }}>
         <span>12</span>
@@ -902,26 +902,26 @@ function XPost({ privacy }: { privacy: boolean }) {
   );
 }
 
-function StoryPreview({ privacy }: { privacy: boolean }) {
+function StoryPreview({ t, privacy }: { t: Tokens; privacy: boolean }) {
   return (
     <div className="overflow-hidden rounded-[20px]" style={{ background: "linear-gradient(170deg, #1A1C26 0%, #3A2E38 55%, #101014 100%)", aspectRatio: "9/16" }}>
       <div className="mx-auto mt-2 h-[3px] w-16 rounded-full bg-white/40" />
       <div className="px-4 pt-6">
-        <ShareCard privateZones={privacy} />
+        <ShareCard t={t} privateZones={privacy} />
       </div>
       <p className="px-4 pt-4 font-mono text-[11px] tracking-[0.2em] text-white">MORNING LOOP — 5.2 KM</p>
     </div>
   );
 }
 
-function WAPreview({ privacy }: { privacy: boolean }) {
+function WAPreview({ t, privacy }: { t: Tokens; privacy: boolean }) {
   return (
     <div className="rounded-[20px] p-4" style={{ background: "#0B141A" }}>
       <p className="text-center font-mono text-[9px] tracking-[0.18em]" style={{ color: "rgba(255,255,255,0.45)" }}>
         TODAY
       </p>
       <div className="ml-auto mt-2 w-[94%] rounded-[14px] rounded-tr-[4px] p-2" style={{ background: "#005C4B" }}>
-        <ShareCard privateZones={privacy} />
+        <ShareCard t={t} privateZones={privacy} />
         <p className="px-1 pb-0.5 pt-1.5 text-[12px] text-white">Morning loop done. 5.2 km in 32:14.</p>
         <p className="px-1 text-right font-mono text-[9px]" style={{ color: "rgba(255,255,255,0.7)" }}>
           06:47 ✓✓
@@ -972,9 +972,9 @@ function SharePreview({ platform, privacy, t, onBack }: { platform: Exclude<Shar
         </button>
       </div>
       <div className="no-scrollbar flex-1 overflow-y-auto px-4 pb-8 pt-4">
-        {platform === "x" && <XPost privacy={privacy} />}
-        {platform === "instagram" && <StoryPreview privacy={privacy} />}
-        {platform === "whatsapp" && <WAPreview privacy={privacy} />}
+        {platform === "x" && <XPost t={t} privacy={privacy} />}
+        {platform === "instagram" && <StoryPreview t={t} privacy={privacy} />}
+        {platform === "whatsapp" && <WAPreview t={t} privacy={privacy} />}
       </div>
     </motion.div>
   );
