@@ -65,4 +65,8 @@ describe("reduced motion", () => {
     expect(src).toContain('role="dialog"');
     expect(src).toContain('aria-modal="true"');
   });
+
+  it("groups the date card as one announcement", () => {
+    expect(src).toContain("partly sunny 25 degrees");
+  });
 });

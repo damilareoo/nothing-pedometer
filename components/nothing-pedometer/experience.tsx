@@ -455,7 +455,7 @@ function ClockFace({ time, t }: { time: string; t: Tokens }) {
 /** Date + weather squircle, dot-matrix capitals exactly like the device. */
 function DateCard({ weekday, dayMonth, t }: { weekday: string; dayMonth: string; t: Tokens }) {
   return (
-    <div className="flex flex-1 flex-col justify-center gap-[8px] rounded-[28px] p-4" style={{ background: t.widget, border: `1px solid ${t.edge}`, boxShadow: t.pop }}>
+    <div className="flex flex-1 flex-col justify-center gap-[8px] rounded-[28px] p-4" role="group" aria-label={`${weekday} ${dayMonth}, partly sunny 25 degrees`} style={{ background: t.widget, border: `1px solid ${t.edge}`, boxShadow: t.pop }}>
       <Matrix t={t} text={weekday} dot={1.15} pitch={2.6} />
       <Matrix t={t} text={dayMonth} dot={1.15} pitch={2.6} />
       <Matrix t={t} text="PARTLY SUNNY" dot={1} pitch={2.3} />
@@ -528,7 +528,7 @@ function Dock({ t }: { t: Tokens }) {
           Search
         </span>
       </div>
-      <div className="mx-auto mb-1.5 mt-3.5 h-[4px] w-[120px] rounded-full" style={{ background: t.faint }} />
+      <div className="mx-auto mb-1.5 mt-3.5 h-[4px] w-[120px] rounded-full" style={{ background: t.faint }} aria-hidden />
     </div>
   );
 }
