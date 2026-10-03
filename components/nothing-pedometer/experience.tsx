@@ -44,6 +44,12 @@ const WEEK = [
   { d: "S", v: STEPS },
 ];
 
+/** Caption math, derived so the words can never disagree with the columns. */
+const WEEK_DAYS = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
+const WEEK_AVG = Math.round(WEEK.reduce((a, b) => a + b.v, 0) / WEEK.length).toLocaleString("en-US");
+const BEST_IDX = WEEK.reduce((bi, b, i) => (b.v > WEEK[bi].v ? i : bi), 0);
+const WEEK_BEST = `${WEEK_DAYS[BEST_IDX]} ${WEEK[BEST_IDX].v.toLocaleString("en-US")}`;
+
 const HOURLY = [0, 0, 0, 0, 0, 0, 120, 680, 420, 180, 240, 310, 520, 280, 190, 340, 410, 860, 1240, 540, 220, 90, 20, 0];
 
 const RUN = { dist: "5.2", time: "32:14", pace: "6'12''", kcal: "268", when: "06:42" };
@@ -81,6 +87,7 @@ function useNow(): { time: string; dateLine: string; weekday: string; dayMonth: 
   };
   const [now, setNow] = useState({ time: "9:41", dateLine: "Fri · 2 Oct", weekday: "Fri", dayMonth: "2 Oct" });
   useEffect(() => {
+    setNow(fmt(new Date()));
     const id = setInterval(() => setNow(fmt(new Date())), 10_000);
     return () => clearInterval(id);
   }, []);
@@ -257,7 +264,7 @@ function ActivityCard({ t }: { t: Tokens }) {
         </AnimatePresence>
       </div>
       <p className="mt-2.5 font-mono text-[10px] tracking-[0.14em]" style={{ color: t.dim }}>
-        {range === "day" ? "PEAK 18:00 · 1,240 STEPS" : "AVG 7,305 · BEST THU 10,240"}
+        {range === "day" ? "PEAK 18:00 · 1,240 STEPS" : `AVG ${WEEK_AVG} · BEST ${WEEK_BEST}`}
       </p>
     </div>
   );
@@ -497,11 +504,18 @@ function Dock({ t }: { t: Tokens }) {
           { id: "messages", Icon: MessageIcon },
           { id: "camera", Icon: CameraIcon },
           { id: "settings", Icon: GearIcon },
-        ].map(({ id, Icon }) => (
-          <div key={id} className="flex items-center justify-center rounded-full" style={{ background: t.dock, aspectRatio: "1", color: t.onDock }}>
-            <Icon size={22} />
-          </div>
-        ))}
+        ].map(({ id, Icon }, i, arr) => {
+          const last = i === arr.length - 1;
+          return (
+            <div
+              key={id}
+              className="flex items-center justify-center rounded-full"
+              style={{ background: last ? t.dockAlt : t.dock, aspectRatio: "1", color: last ? t.onDockAlt : t.onDock }}
+            >
+              <Icon size={22} />
+            </div>
+          );
+        })}
       </div>
       <div className="mt-3 flex items-center gap-2.5 rounded-full px-4 py-3" style={{ background: t.widget, border: `1px solid ${t.edge}`, boxShadow: t.pop, color: t.dim }}>
         <SearchIcon size={15} />

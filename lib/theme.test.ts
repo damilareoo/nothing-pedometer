@@ -35,6 +35,12 @@ describe("Nothing OS 4.1 light truth", () => {
     expect(dark.dock).toBe("#1B1A1F");
     expect(dark.dot).toBe("#FFFFFF");
   });
+
+  it("models the black launcher exception on the light dock", () => {
+    expect(light.dockAlt).toBe("#1B1A1F");
+    expect(light.onDockAlt).toBe("#FFFFFF");
+    expect(dark.dockAlt).toBe(dark.dock);
+  });
 });
 
 describe("share artifact follows the theme", () => {

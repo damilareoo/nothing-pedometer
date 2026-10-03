@@ -43,6 +43,10 @@ export type Tokens = {
   wallpaper: string;
   /** Dock discs: black in dark, white in light (4th black disc is an exception). */
   dock: string;
+  /** Launcher exception: the one black disc on the light dock. Same as dock in dark. */
+  dockAlt: string;
+  /** Glyph ink on the exception disc. */
+  onDockAlt: string;
   /** Glyph ink on the dock discs. */
   onDock: string;
   /** Display serif for OS 4.1 page titles ("About phone"). */
@@ -71,6 +75,8 @@ export const THEMES: Record<ThemeName, Tokens> = {
       "radial-gradient(120% 90% at 85% 0%, #343B52 0%, transparent 55%), radial-gradient(110% 85% at 90% 55%, #4A3440 0%, transparent 60%), radial-gradient(90% 70% at 8% 100%, #83838B 0%, transparent 55%), #101014",
     dock: "#1B1A1F",
     onDock: "rgba(255,255,255,0.85)",
+    dockAlt: "#1B1A1F",
+    onDockAlt: "rgba(255,255,255,0.85)",
     serif: SERIF,
     edge: "transparent",
     pop: "none",
@@ -90,6 +96,8 @@ export const THEMES: Record<ThemeName, Tokens> = {
       "radial-gradient(120% 90% at 85% 0%, #343B52 0%, transparent 55%), radial-gradient(110% 85% at 90% 55%, #4A3440 0%, transparent 60%), radial-gradient(90% 70% at 8% 100%, #83838B 0%, transparent 55%), #101014",
     dock: "#FFFFFF",
     onDock: "#0A0A0A",
+    dockAlt: "#1B1A1F",
+    onDockAlt: "#FFFFFF",
     serif: SERIF,
     edge: "rgba(10,10,10,0.10)",
     pop: "0 10px 28px rgba(10,10,10,0.10)",
