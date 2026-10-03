@@ -153,7 +153,7 @@ function WeekDots({ today, t }: { today: number; t: Tokens }) {
                 <span
                   key={r}
                   className="h-[3px] w-[3px] rounded-full"
-                  style={{ background: r < lit ? (isToday ? t.dot : t.faint) : t.faint, opacity: r < lit && !isToday ? 0.7 : 1 }}
+                  style={{ background: r < lit ? (isToday ? t.dot : t.dim) : t.faint }}
                 />
               ))}
             </div>
