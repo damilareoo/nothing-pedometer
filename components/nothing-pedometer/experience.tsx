@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { DUR, EASE_EMPHASIZED, EASE_OUT, STAGGER, useReducedMotion } from "@/lib/motion";
 import { THEMES, type ThemeName, type Tokens } from "@/lib/theme";
-import { SHARE_CANVASES, type ShareCanvas } from "@/lib/share-canvases";
+import { SHARE_CANVASES, photoCanvas, type ShareCanvas } from "@/lib/share-canvases";
 import { ArrowRight, CameraIcon, ChevronLeft, GearIcon, MessageIcon, PhoneIcon, SearchIcon } from "./icons";
 import { DotText } from "./dot-matrix";
 
@@ -781,7 +781,18 @@ type ShareTarget = "sheet" | "x" | "instagram" | "whatsapp";
 /** The artifact: what actually travels when a run is shared. Canvas-styled. */
 function ShareCard({ t, privateZones, canvas }: { t: Tokens; privateZones: boolean; canvas: ShareCanvas }) {
   return (
-    <div className="rounded-[18px] p-4" style={{ background: canvas.bg, boxShadow: t.pop }}>
+    <div className="relative overflow-hidden rounded-[18px] p-4" style={{ background: canvas.bg, boxShadow: t.pop }}>
+      {canvas.image && (
+        <>
+          <div className="absolute inset-0" style={{ background: `url(${canvas.image}) center/cover` }} aria-hidden />
+          <div
+            className="absolute inset-0"
+            style={{ background: "linear-gradient(180deg, rgba(5,5,8,0.62) 0%, rgba(5,5,8,0.28) 45%, rgba(5,5,8,0.66) 100%)" }}
+            aria-hidden
+          />
+        </>
+      )}
+      <div className="relative">
       <p className="font-mono text-[9px] uppercase tracking-[0.22em]" style={{ color: canvas.dim }}>
         Morning run · 06:42{privateZones ? " · HOME HIDDEN" : ""}
       </p>
@@ -802,6 +813,7 @@ function ShareCard({ t, privateZones, canvas }: { t: Tokens; privateZones: boole
       <p className="mt-2.5 font-mono text-[8px] uppercase tracking-[0.26em]" style={{ color: canvas.dim }}>
         Nothing · Pedometer
       </p>
+      </div>
     </div>
   );
 }
@@ -948,7 +960,31 @@ function SharePreview({ platform, privacy, t, onBack }: { platform: Exclude<Shar
   }, [posted]);
   const names = { x: "X POST", instagram: "INSTAGRAM STORY", whatsapp: "WHATSAPP" } as const;
   const [canvasId, setCanvasId] = useState(SHARE_CANVASES[0].id);
-  const canvas = SHARE_CANVASES.find((c) => c.id === canvasId) ?? SHARE_CANVASES[0];
+  const [photo, setPhoto] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+  useEffect(() => () => {
+    if (photo) URL.revokeObjectURL(photo);
+  }, [photo]);
+  const canvas =
+    canvasId === "photo"
+      ? photo
+        ? photoCanvas(photo)
+        : SHARE_CANVASES[0]
+      : (SHARE_CANVASES.find((c) => c.id === canvasId) ?? SHARE_CANVASES[0]);
+  const pickPhoto = () => {
+    if (canvasId !== "photo" && photo) {
+      setCanvasId("photo");
+      return;
+    }
+    fileRef.current?.click();
+    setCanvasId("photo");
+  };
+  const onPhotoFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setPhoto(URL.createObjectURL(file));
+    e.target.value = "";
+  };
   return (
     <motion.div
       className="absolute inset-0 flex flex-col"
@@ -1005,8 +1041,25 @@ function SharePreview({ platform, privacy, t, onBack }: { platform: Exclude<Shar
                 />
               );
             })}
+            <motion.button
+              type="button"
+              onClick={pickPhoto}
+              aria-pressed={canvasId === "photo"}
+              aria-label={photo ? "Photo canvas" : "Add a photo canvas"}
+              whileTap={{ scale: 0.88 }}
+              className="flex h-7 w-7 items-center justify-center rounded-full"
+              style={{
+                background: photo ? `url(${photo}) center/cover` : "transparent",
+                border: `1px dashed ${t.dim}`,
+                color: t.dim,
+                boxShadow: canvasId === "photo" ? `0 0 0 2px ${t.ground}, 0 0 0 3.5px ${t.ink}` : "none",
+              }}
+            >
+              {!photo && <CameraIcon size={13} />}
+            </motion.button>
           </div>
         </div>
+        <input ref={fileRef} type="file" accept="image/*" hidden onChange={onPhotoFile} aria-label="Upload a photo background" />
         {platform === "x" && <XPost t={t} privacy={privacy} canvas={canvas} />}
         {platform === "instagram" && <StoryPreview t={t} privacy={privacy} canvas={canvas} />}
         {platform === "whatsapp" && <WAPreview t={t} privacy={privacy} canvas={canvas} />}

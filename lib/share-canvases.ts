@@ -20,6 +20,8 @@ export type ShareCanvas = {
   dim: string;
   /** Picker swatch preview. */
   swatch: string;
+  /** Custom photo URL. Present only on the photo canvas. */
+  image?: string;
 };
 
 export const SHARE_CANVASES: ShareCanvas[] = [
@@ -60,3 +62,21 @@ export const SHARE_CANVASES: ShareCanvas[] = [
     swatch: "linear-gradient(165deg, #4A3440 0%, #0C0C10 100%)",
   },
 ];
+
+/**
+ * A custom-photo canvas. The photo always sits under a dark scrim with
+ * white ink — uploads vary wildly, so legibility is enforced structurally
+ * rather than trusted to the image.
+ */
+export function photoCanvas(imageUrl: string): ShareCanvas {
+  return {
+    id: "photo",
+    label: "Photo",
+    bg: "#0B0B0D",
+    ink: "#FFFFFF",
+    dot: "#FFFFFF",
+    dim: "rgba(255,255,255,0.72)",
+    swatch: imageUrl,
+    image: imageUrl,
+  };
+}

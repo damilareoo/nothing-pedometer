@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { SHARE_CANVASES } from "./share-canvases";
+import { SHARE_CANVASES, photoCanvas } from "./share-canvases";
 
 function lum(hex: string): number {
   const [r, g, b] = [0, 2, 4].map((i) => {
@@ -37,5 +37,13 @@ describe("share canvases", () => {
   it("keeps the red reserved: only Signal spends the hue", () => {
     const hueSpenders = SHARE_CANVASES.filter((c) => c.bg.toUpperCase().includes("E11A1B"));
     expect(hueSpenders.map((c) => c.id)).toEqual(["signal"]);
+  });
+
+  it("builds a legible photo canvas: white ink over scrim, never trusted to the image", () => {
+    const c = photoCanvas("blob:photo");
+    expect(c.id).toBe("photo");
+    expect(c.image).toBe("blob:photo");
+    expect(c.ink).toBe("#FFFFFF");
+    expect(c.dot).toBe("#FFFFFF");
   });
 });

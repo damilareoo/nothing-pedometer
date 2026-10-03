@@ -38,4 +38,11 @@ describe("reduced motion", () => {
     expect(src).toContain("duration: reduced ? 0 : DUR.morph");
     expect(src).toContain("y: reduced ? 0");
   });
+
+  it("wires a custom-photo canvas with enforced legibility", () => {
+    expect(src).toContain('accept="image/*"');
+    expect(src).toContain("URL.createObjectURL");
+    expect(src).toContain("URL.revokeObjectURL");
+    expect(src).toContain("canvas.image");
+  });
 });
