@@ -51,4 +51,13 @@ describe("reduced motion", () => {
     expect(src).toContain("Steps by hour today, peak");
     expect(src).toContain("today={WEEK.length - 1}");
   });
+
+  it("derives every number in the prose from the fixtures", () => {
+    for (const token of ["GOAL_PCT", "GOAL_TO_GO", "WEEK_AVG", "WEEK_BEST", "PEAK_HOUR", "PEAK_STEPS", "RUN.dist", "RUN.time", "RUN.kcal", "RUN.pace", "RUN.when"]) {
+      expect(src).toContain(token);
+    }
+    for (const stale of ["AVG 7,305", "73%</span> OF 10,000", "2,716 TO GO", "Morning run · 06:42{"]) {
+      expect(src).not.toContain(stale);
+    }
+  });
 });

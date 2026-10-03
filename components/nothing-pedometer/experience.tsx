@@ -30,6 +30,9 @@ import { DotText } from "./dot-matrix";
 
 const STEPS = 7284;
 const GOAL = 10000;
+const GOAL_PCT = Math.round((STEPS / GOAL) * 100);
+const GOAL_TO_GO = (GOAL - STEPS).toLocaleString("en-US");
+const GOAL_FMT = GOAL.toLocaleString("en-US");
 const KM = 5.2;
 const KCAL = 312;
 const ACTIVE_MIN = 48;
@@ -52,6 +55,7 @@ const WEEK_BEST = `${WEEK_DAYS[BEST_IDX]} ${WEEK[BEST_IDX].v.toLocaleString("en-
 
 const HOURLY = [0, 0, 0, 0, 0, 0, 120, 680, 420, 180, 240, 310, 520, 280, 190, 340, 410, 860, 1240, 540, 220, 90, 20, 0];
 const PEAK_HOUR = HOURLY.indexOf(Math.max(...HOURLY));
+const PEAK_STEPS = Math.max(...HOURLY).toLocaleString("en-US");
 
 const RUN = { dist: "5.2", time: "32:14", pace: "6'12''", kcal: "268", when: "06:42" };
 
@@ -265,7 +269,7 @@ function ActivityCard({ t }: { t: Tokens }) {
         </AnimatePresence>
       </div>
       <p className="mt-2.5 font-mono text-[10px] tracking-[0.14em]" style={{ color: t.dim }}>
-        {range === "day" ? "PEAK 18:00 · 1,240 STEPS" : `AVG ${WEEK_AVG} · BEST ${WEEK_BEST}`}
+        {range === "day" ? `PEAK ${PEAK_HOUR}:00 · ${PEAK_STEPS} STEPS` : `AVG ${WEEK_AVG} · BEST ${WEEK_BEST}`}
       </p>
     </div>
   );
@@ -364,7 +368,7 @@ function RouteMap({ reduced, t, privateZones }: { reduced: boolean; t: Tokens; p
   const halo = { paintOrder: "stroke" as const, stroke: t.card, strokeWidth: 5 };
 
   return (
-    <svg viewBox="0 0 360 250" className="h-auto w-full" role="img" aria-label="5.2 kilometre run route as a dotted trace">
+    <svg viewBox="0 0 360 250" className="h-auto w-full" role="img" aria-label={`${RUN.dist} kilometre run route as a dotted trace`}>
       {Array.from({ length: 12 }).map((_, r) =>
         Array.from({ length: 18 }).map((_, c) => (
           <circle key={`${r}-${c}`} cx={10 + c * 20} cy={8 + r * 21} r={0.8} fill={t.faint} />
@@ -608,7 +612,7 @@ function DetailScreen({
               <DottedLine frac={STEPS / GOAL} total={32} t={t} />
             </div>
             <p className="mt-2.5 font-mono text-[10px] tracking-[0.16em]" style={{ color: t.dim }}>
-              <span style={{ color: t.ink }}>73%</span> OF 10,000 GOAL · 2,716 TO GO
+              <span style={{ color: t.ink }}>{GOAL_PCT}%</span> OF {GOAL_FMT} GOAL · {GOAL_TO_GO} TO GO
             </p>
             <p className="mt-1.5 font-mono text-[9px] tracking-[0.16em]" style={{ color: t.dim }}>
               COUNTED ON-DEVICE · SYNCED JUST NOW
@@ -635,7 +639,7 @@ function DetailScreen({
             style={{ background: t.ink, color: t.ground }}
             aria-label="View today's run"
           >
-            <span>TODAY&apos;S RUN · 5.2 KM</span>
+            <span>TODAY&apos;S RUN · {RUN.dist} KM</span>
             <span aria-hidden>
               <ArrowRight size={16} />
             </span>
@@ -688,7 +692,7 @@ function RunScreen({ onBack, onShare, privacy, setPrivacy, t }: { onBack: () => 
           Morning run
         </h1>
         <p className={`${MICRO} px-5 pt-2`} style={{ color: t.dim }}>
-          06:42 · 5.2 kilometres
+          {RUN.when} · {RUN.dist} kilometres
         </p>
 
         <div className="px-4 pt-4">
@@ -809,10 +813,10 @@ function ShareCard({ t, privateZones, canvas }: { t: Tokens; privateZones: boole
       )}
       <div className="relative">
       <p className="font-mono text-[9px] uppercase tracking-[0.22em]" style={{ color: canvas.dim }}>
-        Morning run · 06:42{privateZones ? " · HOME HIDDEN" : ""}
+        Morning run · {RUN.when}{privateZones ? " · HOME HIDDEN" : ""}
       </p>
       <div className="mt-1.5">
-        <DotText text="5.2" dot={3.4 * t.dotScale} pitch={10.5} color={canvas.dot} dimOpacity={t.unlit} label="5.2 kilometres" />
+        <DotText text={RUN.dist} dot={3.4 * t.dotScale} pitch={10.5} color={canvas.dot} dimOpacity={t.unlit} label={`${RUN.dist} kilometres`} />
       </div>
       <p className="mt-1 font-mono text-[10px] tracking-[0.24em]" style={{ color: canvas.ink }}>KILOMETRES</p>
       <svg viewBox="0 0 360 250" className="mt-2 h-auto w-full" role="img" aria-label="Run route">
@@ -821,9 +825,9 @@ function ShareCard({ t, privateZones, canvas }: { t: Tokens; privateZones: boole
         <circle cx={96} cy={200} r={7} fill={t.red} opacity={privateZones ? 0.2 : 1} />
       </svg>
       <div className="mt-2 flex justify-between font-mono text-[11px]" style={{ color: canvas.ink }}>
-        <span>32:14</span>
-        <span>6&apos;12&apos;&apos;/KM</span>
-        <span>268 KCAL</span>
+        <span>{RUN.time}</span>
+        <span>{RUN.pace}/KM</span>
+        <span>{RUN.kcal} KCAL</span>
       </div>
       <p className="mt-2.5 font-mono text-[8px] uppercase tracking-[0.26em]" style={{ color: canvas.dim }}>
         Nothing · Pedometer
