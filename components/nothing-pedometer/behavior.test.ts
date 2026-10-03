@@ -69,4 +69,8 @@ describe("reduced motion", () => {
   it("groups the date card as one announcement", () => {
     expect(src).toContain("partly sunny 25 degrees");
   });
+
+  it("marks the live position red on the goal line, like the OS range bars", () => {
+    expect(src).toContain("isNow ? t.red");
+  });
 });

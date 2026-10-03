@@ -140,18 +140,25 @@ function Rise({ index = 0, className, children }: { index?: number; className?: 
   );
 }
 
-/** A dotted progress line: lit dots up to `frac`, dim matrix after. */
+/**
+ * A dotted progress line: lit dots up to `frac`, dim matrix after.
+ * The boundary dot burns red — the device marks the live position the same
+ * way on its forecast range bars, and red is live position in this system.
+ */
 function DottedLine({ frac, total = 30, t }: { frac: number; total?: number; t: Tokens }) {
   const on = Math.round(frac * total);
   return (
     <div className="flex items-center gap-[5px]" aria-hidden>
-      {Array.from({ length: total }).map((_, i) => (
-        <span
-          key={i}
-          className="h-[4px] w-[4px] rounded-full"
-          style={{ background: i < on ? t.dot : t.faint }}
-        />
-      ))}
+      {Array.from({ length: total }).map((_, i) => {
+        const isNow = i === on - 1 && on > 0;
+        return (
+          <span
+            key={i}
+            className="h-[4px] w-[4px] rounded-full"
+            style={{ background: isNow ? t.red : i < on ? t.dot : t.faint }}
+          />
+        );
+      })}
     </div>
   );
 }
