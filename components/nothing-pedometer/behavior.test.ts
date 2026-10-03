@@ -24,3 +24,18 @@ describe("behavior wiring", () => {
     expect(src).toContain("const steps = useCountUp(STEPS, visits)");
   });
 });
+
+describe("reduced motion", () => {
+  it("drops the shared-element morph (one stage at a time, no flight)", () => {
+    expect(src).toContain('const shellId = reduced ? undefined : "pedometer-shell"');
+  });
+
+  it("holds the run trace on a static frame instead of animating it", () => {
+    expect(src).toContain("paint(0.55)");
+  });
+
+  it("zeroes container transitions and staged offsets", () => {
+    expect(src).toContain("duration: reduced ? 0 : DUR.morph");
+    expect(src).toContain("y: reduced ? 0");
+  });
+});

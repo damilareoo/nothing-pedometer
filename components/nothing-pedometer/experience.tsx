@@ -1033,7 +1033,7 @@ export function PedometerExperience() {
   }, []);
 
   return (
-    <main className="flex min-h-dvh flex-col items-center bg-black text-white">
+    <main className="flex min-h-dvh flex-col items-center" style={{ background: t.ground, color: t.ink }}>
       <div className="flex items-center gap-2 pt-6" role="group" aria-label="Theme">
         {(["dark", "light"] as const).map((m) => (
           <button
@@ -1043,15 +1043,15 @@ export function PedometerExperience() {
             aria-pressed={theme === m}
             className="rounded-full border px-4 py-1.5 font-mono text-[10px] uppercase tracking-[0.22em]"
             style={{
-              borderColor: "rgba(255,255,255,0.2)",
-              background: theme === m ? "#fff" : "transparent",
-              color: theme === m ? "#000" : "rgba(255,255,255,0.6)",
+              borderColor: t.faint,
+              background: theme === m ? t.ink : "transparent",
+              color: theme === m ? t.ground : t.dim,
             }}
           >
             {m}
           </button>
         ))}
-        <span className="pl-2 font-mono text-[10px] uppercase tracking-[0.22em]" style={{ color: "rgba(255,255,255,0.35)" }}>
+        <span className="pl-2 font-mono text-[10px] uppercase tracking-[0.22em]" style={{ color: t.dim }}>
           OS 4.1 tokens
         </span>
       </div>
@@ -1064,7 +1064,7 @@ export function PedometerExperience() {
             exit={{ opacity: 0, y: -6 }}
             transition={{ duration: DUR.micro, ease: EASE_OUT }}
             className="text-center font-mono text-[10px] uppercase tracking-[0.24em]"
-            style={{ color: "rgba(255,255,255,0.55)" }}
+            style={{ color: t.dim }}
           >
             {STAGE_LINE[stage]}
           </motion.p>
@@ -1073,6 +1073,7 @@ export function PedometerExperience() {
       <div className="flex w-full flex-1 items-center justify-center sm:py-6">
         <div
           className="relative h-dvh w-full overflow-hidden sm:h-[860px] sm:w-[400px] sm:rounded-[40px] sm:ring-1 sm:ring-white/15"
+          style={{ boxShadow: t.pop }}
           role="region"
           aria-label="Nothing Phone pedometer concept"
         >
