@@ -702,7 +702,7 @@ function RunScreen({ onBack, onShare, privacy, setPrivacy, t }: { onBack: () => 
           {RUN.when} · {RUN.dist} kilometres
         </p>
 
-        <div className="px-4 pt-4">
+        <div className="px-5 pt-4">
           <Matrix t={t} text={RUN.dist} dot={2.6} pitch={6.5} label={`${RUN.dist} kilometres`} />
         </div>
 
