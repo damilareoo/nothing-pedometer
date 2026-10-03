@@ -78,4 +78,8 @@ describe("reduced motion", () => {
     expect(src).toContain("<ArrowLeft size={20} />");
     expect(src).not.toContain("Chevron");
   });
+
+  it("shows the privacy toggle armed, like the OS master switch", () => {
+    expect(src).toContain("{privacy && <span");
+  });
 });

@@ -726,9 +726,10 @@ function RunScreen({ onBack, onShare, privacy, setPrivacy, t }: { onBack: () => 
             onClick={() => setPrivacy(!privacy)}
             aria-pressed={privacy}
             aria-label="Privacy zone: hide start and finish near home"
-            className="flex w-full items-center justify-between rounded-[20px] px-[18px] py-3.5"
+            className="relative flex w-full items-center justify-between overflow-hidden rounded-[20px] px-[18px] py-3.5"
             style={{ background: t.card, border: `1px solid ${t.edge}`, boxShadow: t.pop }}
           >
+            {privacy && <span className="absolute inset-0" style={{ background: t.faint, opacity: 0.45 }} aria-hidden />}
             <span className="text-left">
               <span className="block text-[13px] font-medium" style={{ color: t.ink }}>
                 Privacy zone {privacy ? "on" : "off"}
