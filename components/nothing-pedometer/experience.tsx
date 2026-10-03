@@ -774,10 +774,11 @@ function RunScreen({ onBack, onShare, privacy, setPrivacy, t }: { onBack: () => 
         </Rise>
 
         <Rise index={4} className="px-4 pt-2.5">
-          <div className="overflow-hidden rounded-[20px]" style={{ background: t.card, border: `1px solid ${t.edge}`, boxShadow: t.pop }}>
+          <div className="overflow-hidden rounded-[20px]" role="list" aria-label="Kilometre splits" style={{ background: t.card, border: `1px solid ${t.edge}`, boxShadow: t.pop }}>
             {SPLITS.map((s, i) => (
               <div
                 key={s.km}
+                role="listitem"
                 className="flex items-center justify-between px-[18px] py-3 font-mono text-[12px]"
                 style={{ borderTop: i === 0 ? "none" : `1px solid ${t.faint}`, color: t.ink }}
               >
