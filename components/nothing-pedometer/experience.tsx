@@ -21,6 +21,12 @@ import { DotText } from "./dot-matrix";
  * themselves, so there is no "tap to expand" hint.
  */
 
+/* --------------------------------- fixtures ---------------------------------- */
+/* Concept fixtures, one block, one seam: every number below is static demo
+   data. A live source (Health Connect post, at-home mock) replaces this block
+   whole — no component reaches past it for a number. Widget copy ("162 /
+   7,442") is the real device wording and stays even when values go live. */
+
 const STEPS = 7284;
 const GOAL = 10000;
 const KM = 5.2;
