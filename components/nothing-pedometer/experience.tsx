@@ -874,9 +874,9 @@ function ShareSheet({ t, privacy, onPick, onClose }: { t: Tokens; privacy: boole
     return () => clearTimeout(id);
   }, [copied]);
   const targets = [
-    { id: "x", label: "X", mark: "X" },
-    { id: "instagram", label: "Instagram", mark: "IG" },
-    { id: "whatsapp", label: "WhatsApp", mark: "WA" },
+    { id: "x", label: "X", mark: "X", bg: "#000000", fg: "#FFFFFF" },
+    { id: "instagram", label: "Instagram", mark: "IG", bg: "#E1306C", fg: "#FFFFFF" },
+    { id: "whatsapp", label: "WhatsApp", mark: "WA", bg: "#25D366", fg: "#FFFFFF" },
   ] as const;
   return (
     <>
@@ -901,37 +901,45 @@ function ShareSheet({ t, privacy, onPick, onClose }: { t: Tokens; privacy: boole
         exit={{ y: "100%", transition: { duration: DUR.fast, ease: EASE_OUT } }}
         transition={{ duration: DUR.morph, ease: EASE_EMPHASIZED }}
       >
-        <div className="mx-auto h-[4px] w-[40px] rounded-full" style={{ background: t.faint }} />
-        <p className="pt-3 font-mono text-[10px] uppercase tracking-[0.22em]" style={{ color: t.dim }}>
-          Share run
+        <div className="mx-auto h-[4px] w-[40px] rounded-full" style={{ background: t.faint }} aria-hidden />
+        <p className="pt-3 text-[17px] font-normal" style={{ color: t.ink }}>
+          Sharing 1 run
         </p>
-        <p className="pt-1 font-mono text-[9px] tracking-[0.16em]" style={{ color: t.dim }}>
-          {RUN.dist} KM · {RUN.time}{privacy ? " · HOME HIDDEN" : ""}
-        </p>
-        <div className="grid grid-cols-4 gap-1 pt-2" role="group" aria-label="Share targets">
+        <div className="mt-2.5 flex items-center gap-3 rounded-[18px] px-4 py-3.5" style={{ background: t.faint }}>
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full" style={{ background: t.dot, color: t.ground }} aria-hidden>
+            <span className="font-mono text-[10px]">5K</span>
+          </span>
+          <p className="truncate text-[13px]" style={{ color: t.ink }}>
+            Morning run · {RUN.dist} km in {RUN.time}{privacy ? " · home hidden" : ""}
+          </p>
+        </div>
+        <div className="mt-3 border-t pt-3" style={{ borderColor: t.faint }}>
+        <div className="grid grid-cols-4 gap-1" role="group" aria-label="Share targets">
           <button
             type="button"
             onClick={() => { setCopied(true); onPick("copy"); }}
             className="flex flex-col items-center gap-2 py-2"
           >
-            <span className="flex h-12 w-12 items-center justify-center rounded-full" style={{ background: t.faint, color: t.ink }} aria-hidden>
-              <CopyIcon size={19} />
+            <span className="flex h-14 w-14 items-center justify-center rounded-full" style={{ background: t.faint, color: t.ink }} aria-hidden>
+              <CopyIcon size={22} />
             </span>
-            <span className="font-mono text-[9px] tracking-[0.12em]" style={{ color: t.ink }} aria-live="polite">
+            <span className="text-[12px]" style={{ color: t.ink }} aria-live="polite">
               {copied ? "Copied" : "Copy"}
             </span>
           </button>
           {targets.map((r) => (
             <button key={r.id} type="button" onClick={() => onPick(r.id)} className="flex flex-col items-center gap-2 py-2">
-              <span className="flex h-12 w-12 items-center justify-center rounded-full font-mono text-[10px]" style={{ background: t.faint, color: t.ink }} aria-hidden>
+              <span className="flex h-14 w-14 items-center justify-center rounded-full text-[13px] font-medium" style={{ background: r.bg, color: r.fg }} aria-hidden>
                 {r.mark}
               </span>
-              <span className="font-mono text-[9px] tracking-[0.12em]" style={{ color: t.ink }}>
+              <span className="text-[12px]" style={{ color: t.ink }}>
                 {r.label}
               </span>
             </button>
           ))}
         </div>
+        </div>
+        <div className="mx-auto mt-4 h-[4px] w-[120px] rounded-full" style={{ background: t.faint }} aria-hidden />
       </motion.div>
     </>
   );

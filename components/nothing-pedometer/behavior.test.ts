@@ -104,8 +104,8 @@ describe("reduced motion", () => {
   });
 
   it("shows what is being shared before the targets", () => {
-    expect(src).toContain("Share run");
-    expect(src).toContain("{RUN.dist} KM");
+    expect(src).toContain("Sharing 1 run");
+    expect(src).toContain("Morning run ·");
   });
 
   it("badges privacy on the artifact itself", () => {
