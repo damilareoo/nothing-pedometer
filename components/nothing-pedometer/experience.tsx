@@ -1128,18 +1128,12 @@ function SharePreview({ platform, privacy, t, onBack }: { platform: Exclude<Shar
         ? photoCanvas(photo)
         : SHARE_CANVASES[0]
       : (SHARE_CANVASES.find((c) => c.id === canvasId) ?? SHARE_CANVASES[0]);
-  const pickPhoto = () => {
-    if (canvasId !== "photo" && photo) {
-      setCanvasId("photo");
-      return;
-    }
-    fileRef.current?.click();
-    setCanvasId("photo");
-  };
   const onPhotoFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (photo) URL.revokeObjectURL(photo);
     setPhoto(URL.createObjectURL(file));
+    setCanvasId("photo");
     e.target.value = "";
   };
   const shareText = `Morning run · ${RUN.dist} km in ${RUN.time}`;
@@ -1267,13 +1261,17 @@ function SharePreview({ platform, privacy, t, onBack }: { platform: Exclude<Shar
                 />
               );
             })}
-            <motion.button
-              type="button"
-              onClick={pickPhoto}
-              aria-pressed={canvasId === "photo"}
+            <motion.label
+              htmlFor="photo-upload"
+              onClick={(e) => {
+                if (canvasId !== "photo" && photo) {
+                  e.preventDefault();
+                  setCanvasId("photo");
+                }
+              }}
               aria-label={photo ? "Photo canvas" : "Add a photo canvas"}
               whileTap={{ scale: 0.88 }}
-              className="flex h-7 w-7 items-center justify-center rounded-full"
+              className="flex h-7 w-7 cursor-pointer items-center justify-center overflow-hidden rounded-full"
               style={{
                 background: photo ? `url(${photo}) center/cover` : "transparent",
                 border: `1px dashed ${t.dim}`,
@@ -1282,10 +1280,10 @@ function SharePreview({ platform, privacy, t, onBack }: { platform: Exclude<Shar
               }}
             >
               {!photo && <CameraIcon size={13} />}
-            </motion.button>
+            </motion.label>
           </div>
         </div>
-        <input ref={fileRef} type="file" accept="image/*" hidden onChange={onPhotoFile} aria-label="Upload a photo background" />
+        <input id="photo-upload" ref={fileRef} type="file" accept="image/*" className="sr-only" onChange={onPhotoFile} aria-label="Upload a photo background" />
         {platform === "x" && <XPost t={t} privacy={privacy} canvas={canvas} />}
         {platform === "instagram" && <StoryPreview t={t} privacy={privacy} canvas={canvas} />}
         {platform === "whatsapp" && <WAPreview t={t} privacy={privacy} canvas={canvas} />}

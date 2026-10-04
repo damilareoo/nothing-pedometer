@@ -47,6 +47,11 @@ describe("reduced motion", () => {
     expect(src).toContain("canvas.image");
   });
 
+  it("opens the picker from a real label tap, never a scripted click", () => {
+    expect(src).toContain('htmlFor="photo-upload"');
+    expect(src).not.toContain(".click()");
+  });
+
   it("lets every chart speak and derives its words from the data", () => {
     expect(src).toContain("Steps this week, best");
     expect(src).toContain("Steps by hour today, peak");
