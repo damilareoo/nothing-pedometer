@@ -92,4 +92,9 @@ describe("reduced motion", () => {
   it("shows the privacy toggle armed, like the OS master switch", () => {
     expect(src).toContain("{privacy && <span");
   });
+
+  it("gives share a 44px icon-plus-label target", () => {
+    expect(src).toContain("min-h-[44px]");
+    expect(src).toContain("<ShareIcon size={18} />");
+  });
 });

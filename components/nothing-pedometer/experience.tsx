@@ -5,7 +5,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { DUR, EASE_EMPHASIZED, EASE_OUT, STAGGER, useReducedMotion } from "@/lib/motion";
 import { THEMES, type ThemeName, type Tokens } from "@/lib/theme";
 import { SHARE_CANVASES, photoCanvas, type ShareCanvas } from "@/lib/share-canvases";
-import { ArrowLeft, ArrowRight, CameraIcon, CopyIcon, GearIcon, MessageIcon, PhoneIcon, SearchIcon } from "./icons";
+import { ArrowLeft, ArrowRight, CameraIcon, CopyIcon, GearIcon, MessageIcon, PhoneIcon, SearchIcon, ShareIcon } from "./icons";
 import { DotText } from "./dot-matrix";
 
 /**
@@ -697,9 +697,12 @@ function RunScreen({ onBack, onShare, privacy, setPrivacy, t }: { onBack: () => 
             type="button"
             onClick={onShare}
             aria-label="Share this run"
-            className={MICRO}
+            className="flex min-h-[44px] min-w-[44px] items-center justify-center gap-2 rounded-full px-3 font-mono text-[10px] uppercase tracking-[0.22em]"
             style={{ color: t.dim }}
           >
+            <span aria-hidden className="flex">
+              <ShareIcon size={18} />
+            </span>
             SHARE
           </button>
         </div>
