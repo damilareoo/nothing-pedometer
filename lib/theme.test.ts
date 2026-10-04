@@ -36,10 +36,9 @@ describe("Nothing OS 4.1 light truth", () => {
     expect(dark.dot).toBe("#FFFFFF");
   });
 
-  it("models the black launcher exception on the light dock", () => {
-    expect(light.dockAlt).toBe("#1B1A1F");
-    expect(light.onDockAlt).toBe("#FFFFFF");
-    expect(dark.dockAlt).toBe(dark.dock);
+  it("renders every dock disc from the same tokens — no exceptions", () => {
+    expect(THEMES.light.dock).toBe("#FFFFFF");
+    expect(THEMES.light.onDock).toBe("#0A0A0A");
   });
 });
 
@@ -56,5 +55,9 @@ describe("share artifact follows the theme", () => {
   it("threads tokens into the share card and its previews", () => {
     expect(src).toContain("function ShareCard({ t,");
     expect(src).toContain("<ShareCard t={t}");
+  });
+
+  it("keeps no per-disc dock exception in the render", () => {
+    expect(src).not.toContain("dockAlt");
   });
 });

@@ -584,13 +584,12 @@ function Dock({ t }: { t: Tokens }) {
           { id: "messages", Icon: MessageIcon },
           { id: "camera", Icon: CameraIcon },
           { id: "settings", Icon: GearIcon },
-        ].map(({ id, Icon }, i, arr) => {
-          const last = i === arr.length - 1;
+        ].map(({ id, Icon }) => {
           return (
             <div
               key={id}
               className="flex items-center justify-center rounded-full"
-              style={{ background: last ? t.dockAlt : t.dock, aspectRatio: "1", color: last ? t.onDockAlt : t.onDock }}
+              style={{ background: t.dock, aspectRatio: "1", color: t.onDock }}
             >
               <Icon size={22} />
             </div>
