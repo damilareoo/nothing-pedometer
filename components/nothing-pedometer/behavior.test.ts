@@ -49,7 +49,7 @@ describe("reduced motion", () => {
 
   it("opens the picker from a real label tap, never a scripted click", () => {
     expect(src).toContain('htmlFor="photo-upload"');
-    expect(src).not.toContain(".click()");
+    expect(src).not.toContain("fileRef.current?.click()");
   });
 
   it("lets every chart speak and derives its words from the data", () => {
@@ -158,6 +158,12 @@ describe("reduced motion", () => {
 
   it("explains why Instagram copies instead of posting", () => {
     expect(src).toContain("pick Instagram there");
+  });
+
+  it("offers SAVE as the guaranteed poster path", () => {
+    expect(src).toContain("downloadPoster");
+    expect(src).toContain('a.download = "morning-run.png"');
+    expect(src).toContain('aria-label="Save poster PNG"');
   });
 
   it("carries the poster image through the native share sheet", () => {

@@ -1133,35 +1133,39 @@ function SharePreview({ platform, privacy, t, onBack }: { platform: Exclude<Shar
     e.target.value = "";
   };
   const shareText = `Morning run · ${RUN.dist} km in ${RUN.time}`;
+  /** Rasterized poster file — shared natively or saved for manual attach. */
+  const buildPosterFile = async (): Promise<File> => {
+    let photo: string | undefined;
+    if (canvas.image) {
+      const blob = await (await fetch(canvas.image)).blob();
+      photo = await new Promise<string>((resolve, reject) => {
+        const fr = new FileReader();
+        fr.onload = () => resolve(String(fr.result));
+        fr.onerror = reject;
+        fr.readAsDataURL(blob);
+      });
+    }
+    const svg = sharePosterSVG({
+      dist: RUN.dist,
+      time: RUN.time,
+      pace: RUN.pace,
+      kcal: RUN.kcal,
+      when: RUN.when,
+      route: ROUTE,
+      privacy,
+      bg: canvas.bg,
+      ink: canvas.ink,
+      dot: canvas.dot,
+      dim: canvas.dim,
+      red: t.red,
+      photo,
+    });
+    return sharePosterPNG(svg);
+  };
   /** The poster as PNG bytes over native share — SVGs fail canShare on phones. */
   const tryImageShare = async (): Promise<boolean> => {
     try {
-      let photo: string | undefined;
-      if (canvas.image) {
-        const blob = await (await fetch(canvas.image)).blob();
-        photo = await new Promise<string>((resolve, reject) => {
-          const fr = new FileReader();
-          fr.onload = () => resolve(String(fr.result));
-          fr.onerror = reject;
-          fr.readAsDataURL(blob);
-        });
-      }
-      const svg = sharePosterSVG({
-        dist: RUN.dist,
-        time: RUN.time,
-        pace: RUN.pace,
-        kcal: RUN.kcal,
-        when: RUN.when,
-        route: ROUTE,
-        privacy,
-        bg: canvas.bg,
-        ink: canvas.ink,
-        dot: canvas.dot,
-        dim: canvas.dim,
-        red: t.red,
-        photo,
-      });
-      const file = await sharePosterPNG(svg);
+      const file = await buildPosterFile();
       if (navigator.canShare?.({ files: [file] })) {
         await navigator.share({ files: [file] });
         return true;
@@ -1170,6 +1174,23 @@ function SharePreview({ platform, privacy, t, onBack }: { platform: Exclude<Shar
       /* native image share unavailable — text intents stand in */
     }
     return false;
+  };
+  /** Guaranteed path: save the PNG, attach it manually in any app. */
+  const downloadPoster = async () => {
+    try {
+      const file = await buildPosterFile();
+      const url = URL.createObjectURL(file);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "morning-run.png";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 4000);
+      setShared(true);
+    } catch {
+      /* download unavailable — previews still show the card */
+    }
   };
   const doShare = async () => {
     if (platform === "instagram") {
@@ -1218,19 +1239,30 @@ function SharePreview({ platform, privacy, t, onBack }: { platform: Exclude<Shar
         <p className={MICRO} style={{ color: t.dim }}>
           {names[platform]}
         </p>
-        <button
-          type="button"
-          onClick={doShare}
-          className="min-h-[44px] font-mono text-[11px] tracking-[0.18em]"
-          style={{ color: shared ? t.dim : t.ink }}
-        >
-          {shared ? (copiedNote ? "COPIED ✓" : "SHARED ✓") : "SHARE"}
-        </button>
+        <div className="flex min-h-[44px] items-center gap-4">
+          <button
+            type="button"
+            onClick={downloadPoster}
+            className="font-mono text-[11px] tracking-[0.18em]"
+            style={{ color: t.dim }}
+            aria-label="Save poster PNG"
+          >
+            SAVE
+          </button>
+          <button
+            type="button"
+            onClick={doShare}
+            className="font-mono text-[11px] tracking-[0.18em]"
+            style={{ color: shared ? t.dim : t.ink }}
+          >
+            {shared ? (copiedNote ? "COPIED ✓" : "SHARED ✓") : "SHARE"}
+          </button>
+        </div>
       </div>
       <div className="no-scrollbar flex-1 overflow-y-auto px-4 pb-8 pt-4">
         {platform === "instagram" && (
           <p className="pb-3 text-[13px]" style={{ color: t.dim }}>
-            The poster goes through your system sheet — pick Instagram there. Caption copy is the fallback.
+            SHARE opens your system sheet with the poster — pick Instagram there. SAVE keeps the PNG for manual upload.
           </p>
         )}
         <div className="flex items-center justify-between pb-3">
