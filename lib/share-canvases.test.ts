@@ -34,6 +34,18 @@ describe("share canvases", () => {
     }
   });
 
+  it("keeps body text at WCAG AA on every solid canvas", () => {
+    for (const c of SOLID) {
+      expect(contrast(c.ink, c.bg)).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+
+  it("keeps the privacy badge legible without inheriting", () => {
+    for (const c of SHARE_CANVASES) {
+      expect(contrast(c.onChip, c.chip)).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+
   it("keeps the red reserved: only Signal spends the hue", () => {
     const hueSpenders = SHARE_CANVASES.filter((c) => c.bg.toUpperCase().includes("E11A1B"));
     expect(hueSpenders.map((c) => c.id)).toEqual(["signal"]);

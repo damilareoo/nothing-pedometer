@@ -912,7 +912,7 @@ function ShareCard({ t, privateZones, canvas }: { t: Tokens; privateZones: boole
           Morning run · {RUN.when}
         </p>
         {privateZones && (
-          <p className="shrink-0 rounded-full px-2 py-0.5 font-mono text-[8px] tracking-[0.18em]" style={{ background: canvas.dot, color: canvas.bg }}>
+          <p className="shrink-0 rounded-full px-2 py-0.5 font-mono text-[8px] tracking-[0.18em]" style={{ background: canvas.chip, color: canvas.onChip }}>
             HOME HIDDEN
           </p>
         )}

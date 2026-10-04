@@ -19,6 +19,10 @@ export type ShareCanvas = {
   dot: string;
   /** Secondary text on `bg`. */
   dim: string;
+  /** Privacy-badge fill. Never derived — gradients aren't colors. */
+  chip: string;
+  /** Privacy-badge ink on `chip`. Contrast-tested, not inherited. */
+  onChip: string;
   /** Picker swatch preview. */
   swatch: string;
   /** Custom photo URL. Present only on the photo canvas. */
@@ -33,6 +37,8 @@ export const SHARE_CANVASES: ShareCanvas[] = [
     ink: "#FFFFFF",
     dot: "#FFFFFF",
     dim: "rgba(255,255,255,0.55)",
+    chip: "#FFFFFF",
+    onChip: "#0B0B0D",
     swatch: "#0B0B0D",
   },
   {
@@ -42,6 +48,8 @@ export const SHARE_CANVASES: ShareCanvas[] = [
     ink: "#0A0A0A",
     dot: "#0A0A0A",
     dim: "rgba(10,10,10,0.6)",
+    chip: "#0A0A0A",
+    onChip: "#FFFFFF",
     swatch: "#FFFFFF",
   },
   {
@@ -51,6 +59,8 @@ export const SHARE_CANVASES: ShareCanvas[] = [
     ink: "#FFFFFF",
     dot: "#FFFFFF",
     dim: "rgba(255,255,255,0.78)",
+    chip: "#FFFFFF",
+    onChip: "#E11A1B",
     swatch: "#E11A1B",
   },
   {
@@ -60,6 +70,8 @@ export const SHARE_CANVASES: ShareCanvas[] = [
     ink: "#0A0A0A",
     dot: "#0A0A0A",
     dim: "rgba(10,10,10,0.62)",
+    chip: "#0A0A0A",
+    onChip: "#FFD60A",
     swatch: "#FFD60A",
   },
   {
@@ -69,6 +81,8 @@ export const SHARE_CANVASES: ShareCanvas[] = [
     ink: "#FFFFFF",
     dot: "#FFFFFF",
     dim: "rgba(255,255,255,0.6)",
+    chip: "#FFFFFF",
+    onChip: "#232838",
     swatch: "linear-gradient(165deg, #4A3440 0%, #0C0C10 100%)",
   },
 ];
@@ -86,6 +100,8 @@ export function photoCanvas(imageUrl: string): ShareCanvas {
     ink: "#FFFFFF",
     dot: "#FFFFFF",
     dim: "rgba(255,255,255,0.72)",
+    chip: "#FFFFFF",
+    onChip: "#0B0B0D",
     swatch: imageUrl,
     image: imageUrl,
   };
