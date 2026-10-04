@@ -21,7 +21,8 @@ describe("behavior wiring", () => {
   });
 
   it("counts the hero steps up on first visit, never statically", () => {
-    expect(src).toContain("const steps = useCountUp(STEPS, visits)");
+    expect(src).toContain("useCountUp(target, visits)");
+    expect(src).toContain("useLiveSteps()");
   });
 });
 
@@ -49,7 +50,13 @@ describe("reduced motion", () => {
   it("lets every chart speak and derives its words from the data", () => {
     expect(src).toContain("Steps this week, best");
     expect(src).toContain("Steps by hour today, peak");
-    expect(src).toContain("today={WEEK.length - 1}");
+    expect(src).toContain("today={week.length - 1}");
+  });
+
+  it("feeds the widget, hero, and week chart from the live snapshot", () => {
+    expect(src).toContain('fetch("/api/steps"');
+    expect(src).toContain("live?.today ?? STEPS");
+    expect(src).toContain("live?.days.map");
   });
 
   it("derives every number in the prose from the fixtures", () => {

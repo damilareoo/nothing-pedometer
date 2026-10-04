@@ -5,3 +5,6 @@ out/
 .DS_Store
 tsconfig.tsbuildinfo
 .motion-*
+.env
+.env.*
+!.env.example

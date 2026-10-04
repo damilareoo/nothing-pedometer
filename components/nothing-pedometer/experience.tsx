@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { DUR, EASE_EMPHASIZED, EASE_OUT, STAGGER, useReducedMotion } from "@/lib/motion";
 import { THEMES, type ThemeName, type Tokens } from "@/lib/theme";
 import { SHARE_CANVASES, photoCanvas, type ShareCanvas } from "@/lib/share-canvases";
+import type { StepsSnapshot } from "@/lib/steps";
 import { ArrowLeft, ArrowRight, CameraIcon, CopyIcon, GearIcon, InstagramIcon, MessageIcon, PhoneIcon, SearchIcon, ShareIcon, TelegramIcon, WhatsAppIcon, XIcon } from "./icons";
 import { DotText } from "./dot-matrix";
 
@@ -106,6 +107,47 @@ function useNow(): { time: string; dateLine: string; weekday: string; dayMonth: 
   return now;
 }
 
+/**
+ * Live Health Connect snapshot via our own proxy (`/api/steps` keeps the
+ * Bearer secret server-side). Null until the first fetch resolves or when
+ * offline — every consumer falls back to the fixtures, never to blanks.
+ */
+function useLiveSteps(): StepsSnapshot | null {
+  const [snap, setSnap] = useState<StepsSnapshot | null>(null);
+  useEffect(() => {
+    let alive = true;
+    const load = async () => {
+      try {
+        const res = await fetch("/api/steps", { cache: "no-store" });
+        if (!res.ok) return;
+        const json = await res.json();
+        if (!alive || !json || typeof json.today !== "number" || !Array.isArray(json.days)) return;
+        setSnap(json as StepsSnapshot);
+      } catch {
+        /* offline — fixtures stand in */
+      }
+    };
+    load();
+    const id = setInterval(load, 60_000);
+    return () => {
+      alive = false;
+      clearInterval(id);
+    };
+  }, []);
+  return snap;
+}
+
+/** Weekday initial for a YYYY-MM-DD day, noon-anchored against TZ edges. */
+function dayInitial(date: string): string {
+  const d = new Date(`${date}T12:00:00`);
+  return "SMTWTFS"[d.getDay()] ?? "";
+}
+
+/** Full weekday name for a YYYY-MM-DD day, for the BEST caption. */
+function dayName(date: string): string {
+  return ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"][new Date(`${date}T12:00:00`).getDay()] ?? "";
+}
+
 /** Counts 0 -> target when `go` changes, once per visit. */
 function useCountUp(target: number, go: number): number {
   const [val, setVal] = useState(0);
@@ -172,12 +214,13 @@ function DottedLine({ frac, total = 30, t }: { frac: number; total?: number; t: 
 }
 
 /** 7-day activity as dot columns. Today reads by brightness, never hue. */
-function WeekDots({ today, t }: { today: number; t: Tokens }) {
-  const max = Math.max(...WEEK.map((w) => w.v));
+function WeekDots({ week, today, t }: { week: { d: string; v: number }[]; today: number; t: Tokens }) {
+  const max = Math.max(...week.map((w) => w.v), 1);
+  const best = week.reduce((bi, b, i) => (b.v > week[bi].v ? i : bi), 0);
   const ROWS = 14;
   return (
-    <div className="flex items-stretch justify-between gap-1" role="img" aria-label={`Steps this week, best ${WEEK_BEST}`}>
-      {WEEK.map((b, i) => {
+    <div className="flex items-stretch justify-between gap-1" role="img" aria-label={`Steps this week, best ${week[best].v.toLocaleString("en-US")}`}>
+      {week.map((b, i) => {
         const lit = Math.max(1, Math.round((b.v / max) * ROWS));
         const isToday = i === today;
         return (
@@ -235,9 +278,15 @@ function HourlyDots({ t }: { t: Tokens }) {
 }
 
 /** One chart, two ranges — Apple's Day/Week switcher in Nothing's language. */
-function ActivityCard({ t }: { t: Tokens }) {
+function ActivityCard({ t, live }: { t: Tokens; live: StepsSnapshot | null }) {
   const [range, setRange] = useState<"day" | "week">("day");
   const reduced = useReducedMotion();
+  const week = live?.days.map((d) => ({ d: dayInitial(d.date), v: d.steps })) ?? WEEK;
+  const avg = live ? Math.round(live.average7).toLocaleString("en-US") : WEEK_AVG;
+  const bestIdx = week.reduce((bi, b, i) => (b.v > week[bi].v ? i : bi), 0);
+  const best = live
+    ? `${dayName(live.days[bestIdx].date)} ${week[bestIdx].v.toLocaleString("en-US")}`
+    : WEEK_BEST;
   return (
     <div className="rounded-[20px] p-[18px]" style={{ background: t.card, border: `1px solid ${t.edge}`, boxShadow: t.pop }}>
       <div className="flex items-center justify-between">
@@ -279,12 +328,12 @@ function ActivityCard({ t }: { t: Tokens }) {
             exit={{ opacity: 0, y: reduced ? 0 : -8 }}
             transition={{ duration: DUR.micro, ease: EASE_OUT }}
           >
-            {range === "day" ? <HourlyDots t={t} /> : <WeekDots today={WEEK.length - 1} t={t} />}
+            {range === "day" ? <HourlyDots t={t} /> : <WeekDots week={week} today={week.length - 1} t={t} />}
           </motion.div>
         </AnimatePresence>
       </div>
       <p className="mt-2.5 font-mono text-[10px] tracking-[0.14em]" style={{ color: t.dim }}>
-        {range === "day" ? `PEAK ${PEAK_HOUR}:00 · ${PEAK_STEPS} STEPS` : `AVG ${WEEK_AVG} · BEST ${WEEK_BEST}`}
+        {range === "day" ? `PEAK ${PEAK_HOUR}:00 · ${PEAK_STEPS} STEPS` : `AVG ${avg} · BEST ${best}`}
       </p>
     </div>
   );
@@ -486,11 +535,16 @@ function DateCard({ weekday, dayMonth, t }: { weekday: string; dayMonth: string;
 }
 
 /**
- * The real pedometer widget: "162 / TOTAL TODAY / 1 %" over
- * "7,442 / 7-DAY AVERAGE / 74 %". Tapping expands it into detail.
+ * The pedometer widget: live today over live 7-day average, with the
+ * device's own wording. Fixtures stand in only until the feed resolves.
  */
-function PedoWidget({ onOpen, shellId, t }: { onOpen: () => void; shellId?: string; t: Tokens }) {
+function PedoWidget({ onOpen, shellId, t, live }: { onOpen: () => void; shellId?: string; t: Tokens; live: StepsSnapshot | null }) {
   const row = "flex items-baseline justify-between gap-2";
+  const today = live?.today ?? 162;
+  const avg = live ? Math.round(live.average7) : 7442;
+  const goal = live?.goal ?? GOAL;
+  const todayPct = Math.max(0, Math.round((today / goal) * 100));
+  const avgPct = Math.max(0, Math.round((avg / goal) * 100));
   return (
     <motion.button
       type="button"
@@ -498,23 +552,23 @@ function PedoWidget({ onOpen, shellId, t }: { onOpen: () => void; shellId?: stri
       layoutId={shellId}
       whileTap={{ scale: 0.96 }}
       transition={{ duration: DUR.morph, ease: EASE_EMPHASIZED }}
-      aria-label="Open pedometer details: 162 total today, 7,442 seven-day average"
+      aria-label={`Open pedometer details: ${today.toLocaleString("en-US")} total today, ${avg.toLocaleString("en-US")} seven-day average`}
       className="block w-[184px] rounded-[28px] p-[15px] text-left"
       style={{ background: t.widget, border: `1px solid ${t.edge}`, boxShadow: t.pop }}
     >
-      <Matrix t={t} text="162" dot={1.8} pitch={4.1} label="162" />
+      <Matrix t={t} text={today.toLocaleString("en-US")} dot={1.8} pitch={4.1} label={`${today}`} />
       <span className={`${row} mt-[7px]`}>
         <Matrix t={t} text="TOTAL TODAY" dot={0.7} pitch={1.6} />
         <span className="font-mono text-[10px]" style={{ color: t.dim }}>
-          1%
+          {todayPct}%
         </span>
       </span>
       <span className="my-[11px] block h-px" style={{ background: t.faint }} aria-hidden />
-      <Matrix t={t} text="7,442" dot={1.8} pitch={4.1} label="7,442" />
+      <Matrix t={t} text={avg.toLocaleString("en-US")} dot={1.8} pitch={4.1} label={`${avg}`} />
       <span className={`${row} mt-[7px]`}>
         <Matrix t={t} text="7-DAY AVERAGE" dot={0.7} pitch={1.6} />
         <span className="font-mono text-[10px]" style={{ color: t.dim }}>
-          74%
+          {avgPct}%
         </span>
       </span>
     </motion.button>
@@ -559,11 +613,13 @@ function HomeScreen({
   onOpen,
   shellId,
   t,
+  live,
 }: {
   now: { time: string; dateLine: string; weekday: string; dayMonth: string };
   onOpen: () => void;
   shellId?: string;
   t: Tokens;
+  live: StepsSnapshot | null;
 }) {
   return (
     <motion.div
@@ -577,7 +633,7 @@ function HomeScreen({
         <ClockFace time={now.time} t={t} />
       </div>
       <div className="flex justify-end px-4 pt-3">
-        <PedoWidget onOpen={onOpen} shellId={shellId} t={t} />
+        <PedoWidget onOpen={onOpen} shellId={shellId} t={t} live={live} />
       </div>
       <Dock t={t} />
     </motion.div>
@@ -592,14 +648,24 @@ function DetailScreen({
   visits,
   shellId,
   t,
+  live,
 }: {
   onClose: () => void;
   onRun: () => void;
   visits: number;
   shellId?: string;
   t: Tokens;
+  live: StepsSnapshot | null;
 }) {
-  const steps = useCountUp(STEPS, visits);
+  const target = live?.today ?? STEPS;
+  const goal = live?.goal ?? GOAL;
+  const steps = useCountUp(target, visits);
+  const pct = Math.max(0, Math.round((target / goal) * 100));
+  const toGo = Math.max(0, goal - target).toLocaleString("en-US");
+  const goalFmt = goal.toLocaleString("en-US");
+  const synced = live
+    ? new Date(live.updatedAt).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false })
+    : null;
   return (
     <motion.div
       layoutId={shellId}
@@ -630,13 +696,13 @@ function DetailScreen({
           <div className="rounded-[20px] p-[18px]" style={{ background: t.card, border: `1px solid ${t.edge}`, boxShadow: t.pop }}>
             <Matrix t={t} text={steps.toLocaleString("en-US")} dot={3.2} pitch={8} label={`${steps} steps`} />
             <div className="mt-3.5">
-              <DottedLine frac={STEPS / GOAL} total={32} t={t} />
+              <DottedLine frac={target / goal} total={32} t={t} />
             </div>
             <p className="mt-2.5 font-mono text-[10px] tracking-[0.16em]" style={{ color: t.dim }}>
-              <span style={{ color: t.ink }}>{GOAL_PCT}%</span> OF {GOAL_FMT} GOAL · {GOAL_TO_GO} TO GO
+              <span style={{ color: t.ink }}>{pct}%</span> OF {goalFmt} GOAL · {toGo} TO GO
             </p>
             <p className="mt-1.5 font-mono text-[9px] tracking-[0.16em]" style={{ color: t.dim }}>
-              COUNTED ON-DEVICE · SYNCED JUST NOW
+              COUNTED ON-DEVICE · {synced ? `SYNCED ${synced}` : "SYNCED JUST NOW"}
             </p>
           </div>
         </Rise>
@@ -648,7 +714,7 @@ function DetailScreen({
         </Rise>
 
         <Rise index={2} className="px-4 pt-2.5">
-          <ActivityCard t={t} />
+          <ActivityCard t={t} live={live} />
         </Rise>
 
         <Rise index={3} className="px-4 pt-2.5">
@@ -1166,6 +1232,7 @@ export function PedometerExperience() {
   const [privacy, setPrivacy] = useState(true);
   const reduced = useReducedMotion();
   const now = useNow();
+  const live = useLiveSteps();
   const t = THEMES[theme];
   const shellId = reduced ? undefined : "pedometer-shell";
 
@@ -1242,9 +1309,9 @@ export function PedometerExperience() {
           aria-label="Nothing Phone pedometer concept"
         >
           <AnimatePresence>
-            {stage === "home" && <HomeScreen key="home" now={now} onOpen={open} shellId={shellId} t={t} />}
+            {stage === "home" && <HomeScreen key="home" now={now} onOpen={open} shellId={shellId} t={t} live={live} />}
             {stage === "detail" && (
-              <DetailScreen key="detail" onClose={() => setStage("home")} onRun={() => setStage("run")} visits={visits} shellId={shellId} t={t} />
+              <DetailScreen key="detail" onClose={() => setStage("home")} onRun={() => setStage("run")} visits={visits} shellId={shellId} t={t} live={live} />
             )}
           </AnimatePresence>
           <AnimatePresence>
