@@ -151,6 +151,10 @@ describe("reduced motion", () => {
     expect(src).not.toContain("POSTED ✓");
   });
 
+  it("explains why Instagram copies instead of posting", () => {
+    expect(src).toContain("Instagram accepts no direct shares");
+  });
+
   it("badges privacy on the artifact itself", () => {
     expect(src).toContain("HOME HIDDEN");
     expect(src).toContain("rounded-full px-2 py-0.5");

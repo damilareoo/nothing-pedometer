@@ -1183,6 +1183,11 @@ function SharePreview({ platform, privacy, t, onBack }: { platform: Exclude<Shar
         </button>
       </div>
       <div className="no-scrollbar flex-1 overflow-y-auto px-4 pb-8 pt-4">
+        {platform === "instagram" && (
+          <p className="pb-3 text-[13px]" style={{ color: t.dim }}>
+            Instagram accepts no direct shares from a browser — this copies your run caption for pasting into the app.
+          </p>
+        )}
         <div className="flex items-center justify-between pb-3">
           <p className={MICRO} style={{ color: t.dim }}>
             Canvas · {canvasId === "photo" ? "Photo" : canvas.label}
