@@ -76,6 +76,12 @@ const ROUTE =
 const MICRO = "font-mono text-[10px] uppercase tracking-[0.22em]";
 const SANS_LABEL = "text-[14px] font-medium";
 
+/** Send-time stamp: the message goes out now, so it reads now. */
+function nowHM(): string {
+  const d = new Date();
+  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+}
+
 /* ---------------------------------- hooks --------------------------------- */
 
 function useNow(): { time: string; dateLine: string; weekday: string; dayMonth: string } {
@@ -993,7 +999,7 @@ function WAPreview({ t, privacy, canvas }: { t: Tokens; privacy: boolean; canvas
         <ShareCard t={t} canvas={canvas} privateZones={privacy} />
         <p className="px-1 pb-0.5 pt-1.5 text-[12px] text-white">Morning loop done. {RUN.dist} km in {RUN.time}.</p>
         <p className="px-1 text-right font-mono text-[9px]" style={{ color: "rgba(255,255,255,0.7)" }}>
-          06:47 ✓✓
+          {nowHM()} ✓✓
         </p>
       </div>
     </div>
@@ -1010,7 +1016,7 @@ function TelegramPreview({ t, privacy, canvas }: { t: Tokens; privacy: boolean; 
         <ShareCard t={t} canvas={canvas} privateZones={privacy} />
         <p className="px-1 pb-0.5 pt-1.5 text-[12px] text-white">Morning loop done. {RUN.dist} km in {RUN.time}.</p>
         <p className="px-1 text-right font-mono text-[9px]" style={{ color: "rgba(255,255,255,0.8)" }}>
-          06:47 ✓✓
+          {nowHM()} ✓✓
         </p>
       </div>
     </div>

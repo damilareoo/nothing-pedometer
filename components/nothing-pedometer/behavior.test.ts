@@ -122,6 +122,11 @@ describe("reduced motion", () => {
     expect(src).not.toContain("@nothing · 2m");
   });
 
+  it("stamps messages with the real send time", () => {
+    expect(src).toContain("nowHM()");
+    expect(src).not.toContain("06:47");
+  });
+
   it("badges privacy on the artifact itself", () => {
     expect(src).toContain("HOME HIDDEN");
     expect(src).toContain("rounded-full px-2 py-0.5");
