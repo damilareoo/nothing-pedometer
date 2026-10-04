@@ -97,4 +97,9 @@ describe("reduced motion", () => {
     expect(src).toContain("min-h-[44px]");
     expect(src).toContain("<ShareIcon size={18} />");
   });
+
+  it("lets elevation speak its total climb", () => {
+    expect(src).toContain("ELEV_GAIN");
+    expect(src).toContain("Elevation profile, plus");
+  });
 });

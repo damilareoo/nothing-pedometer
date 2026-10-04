@@ -68,6 +68,7 @@ const SPLITS = [
 ];
 
 const ELEV = [4, 6, 8, 7, 10, 12, 11, 14, 16, 15, 18, 22, 20, 24, 21, 26, 24, 28, 25, 22, 18, 14, 10, 8, 6, 5, 4, 3];
+const ELEV_GAIN = 86;
 
 const ROUTE =
   "M 44 200 C 44 150 80 130 116 138 C 152 146 156 106 194 100 C 232 94 246 126 284 120 C 316 115 328 142 314 168 C 300 194 270 188 262 208 C 256 224 230 232 210 224 C 180 240 140 238 118 224 C 104 215 96 208 96 200";
@@ -771,13 +772,13 @@ function RunScreen({ onBack, onShare, privacy, setPrivacy, t }: { onBack: () => 
         </Rise>
 
         <Rise index={3} className="px-4 pt-2.5">
-          <div className="rounded-[20px] p-[18px]" style={{ background: t.card, border: `1px solid ${t.edge}`, boxShadow: t.pop }}>
+          <div className="rounded-[20px] p-[18px]" role="img" aria-label={`Elevation profile, plus ${ELEV_GAIN} metres total climb`} style={{ background: t.card, border: `1px solid ${t.edge}`, boxShadow: t.pop }}>
             <div className="flex items-baseline justify-between">
               <p className={SANS_LABEL} style={{ color: t.dim }}>
                 Elevation
               </p>
               <p className="font-mono text-[10px]" style={{ color: t.dim }}>
-                +86 M
+                +{ELEV_GAIN} M
               </p>
             </div>
             <div className="mt-3 flex h-[52px] items-end gap-[3px]" aria-hidden>
