@@ -170,8 +170,8 @@ function useCountUp(target: number, go: number): number {
 /* -------------------------------- components ------------------------------- */
 
 /** Themed dot-matrix: ink, unlit floor, and optical size all come from tokens. */
-function Matrix({ t, text, dot = 2.4, pitch = 8, label }: { t: Tokens; text: string; dot?: number; pitch?: number; label?: string }) {
-  return <DotText text={text} dot={dot * t.dotScale} pitch={pitch} color={t.dot} dimOpacity={t.unlit} label={label} />;
+function Matrix({ t, text, dot = 2.4, pitch = 8, label, slots = 0 }: { t: Tokens; text: string; dot?: number; pitch?: number; label?: string; slots?: number }) {
+  return <DotText text={text} dot={dot * t.dotScale} pitch={pitch} color={t.dot} dimOpacity={t.unlit} label={label} slots={slots} />;
 }
 
 /** Staged arrival: content settles in just after the sheet morph lands. */
@@ -556,7 +556,7 @@ function PedoWidget({ onOpen, shellId, t, live }: { onOpen: () => void; shellId?
       className="block w-[184px] rounded-[28px] p-[15px] text-left"
       style={{ background: t.widget, border: `1px solid ${t.edge}`, boxShadow: t.pop }}
     >
-      <Matrix t={t} text={today.toLocaleString("en-US")} dot={1.8} pitch={4.1} label={`${today}`} />
+      <Matrix t={t} text={today.toLocaleString("en-US")} dot={1.8} pitch={4.1} label={`${today}`} slots={6} />
       <span className={`${row} mt-[7px]`}>
         <Matrix t={t} text="TOTAL TODAY" dot={0.7} pitch={1.6} />
         <span className="font-mono text-[10px]" style={{ color: t.dim }}>
@@ -564,7 +564,7 @@ function PedoWidget({ onOpen, shellId, t, live }: { onOpen: () => void; shellId?
         </span>
       </span>
       <span className="my-[11px] block h-px" style={{ background: t.faint }} aria-hidden />
-      <Matrix t={t} text={avg.toLocaleString("en-US")} dot={1.8} pitch={4.1} label={`${avg}`} />
+      <Matrix t={t} text={avg.toLocaleString("en-US")} dot={1.8} pitch={4.1} label={`${avg}`} slots={6} />
       <span className={`${row} mt-[7px]`}>
         <Matrix t={t} text="7-DAY AVERAGE" dot={0.7} pitch={1.6} />
         <span className="font-mono text-[10px]" style={{ color: t.dim }}>
@@ -694,7 +694,7 @@ function DetailScreen({
 
         <Rise index={0} className="px-4 pt-4">
           <div className="rounded-[20px] p-[18px]" style={{ background: t.card, border: `1px solid ${t.edge}`, boxShadow: t.pop }}>
-            <Matrix t={t} text={steps.toLocaleString("en-US")} dot={3.2} pitch={8} label={`${steps} steps`} />
+            <Matrix t={t} text={steps.toLocaleString("en-US")} dot={3.2} pitch={8} label={`${steps} steps`} slots={6} />
             <div className="mt-3.5">
               <DottedLine frac={target / goal} total={32} t={t} />
             </div>

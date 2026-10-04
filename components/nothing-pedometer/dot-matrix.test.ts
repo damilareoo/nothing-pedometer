@@ -23,6 +23,11 @@ describe("dot-matrix glyphs", () => {
     expect(dotTextWidth("1", 10)).toBe(5 * 10);
   });
 
+  it("reserves a stable field so count-ups never reflow", () => {
+    // "133" in a 6-slot field widths like 6 glyphs: 6*6 - 1 columns.
+    expect(dotTextWidth("133".padEnd(6, " "), 8)).toBe(35 * 8);
+  });
+
   it("keeps every glyph a clean 5x7 grid", () => {
     expect(KNOWN_GLYPHS).toHaveLength(45);
     const src = readFileSync("components/nothing-pedometer/dot-matrix.tsx", "utf8");

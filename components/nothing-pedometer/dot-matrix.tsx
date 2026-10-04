@@ -79,6 +79,12 @@ type DotTextProps = {
   /** Accessible label; defaults to the raw text. */
   label?: string;
   className?: string;
+  /**
+   * Reserve width for at least this many glyphs. Count-ups (0 → 24,936)
+   * otherwise reflow the layout every frame; the text stays left-aligned
+   * in the reserved field so the left edge never moves.
+   */
+  slots?: number;
 };
 
 export function DotText({
@@ -89,9 +95,10 @@ export function DotText({
   dimOpacity = 0.09,
   label,
   className,
+  slots = 0,
 }: DotTextProps) {
   const upper = text.toUpperCase();
-  const width = dotTextWidth(upper, pitch);
+  const width = dotTextWidth(upper.padEnd(Math.max(upper.length, slots), " "), pitch);
   const height = 7 * pitch;
   return (
     <svg
