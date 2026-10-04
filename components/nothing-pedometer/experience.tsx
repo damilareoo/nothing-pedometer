@@ -8,7 +8,7 @@ import { SHARE_CANVASES, photoCanvas, type ShareCanvas } from "@/lib/share-canva
 import { sharePosterPNG, sharePosterSVG } from "@/lib/share-poster";
 import { ROUTE } from "@/lib/route";
 import type { StepsSnapshot } from "@/lib/steps";
-import { ArrowLeft, ArrowRight, CameraIcon, CopyIcon, GearIcon, InstagramIcon, MessageIcon, PhoneIcon, SearchIcon, ShareIcon, TelegramIcon, WhatsAppIcon, XIcon } from "./icons";
+import { ArrowLeft, ArrowRight, CameraIcon, GearIcon, InstagramIcon, MessageIcon, PhoneIcon, SearchIcon, ShareIcon, TelegramIcon, WhatsAppIcon, XIcon } from "./icons";
 import { DotText } from "./dot-matrix";
 
 /**
@@ -937,23 +937,7 @@ function ShareCard({ t, privateZones, canvas }: { t: Tokens; privateZones: boole
   );
 }
 
-function ShareSheet({ t, privacy, onPick, onClose }: { t: Tokens; privacy: boolean; onPick: (p: Exclude<ShareTarget, "sheet"> | "copy") => void; onClose: () => void }) {
-  const [copied, setCopied] = useState(false);
-  useEffect(() => {
-    if (!copied) return;
-    const id = setTimeout(() => setCopied(false), 1600);
-    return () => clearTimeout(id);
-  }, [copied]);
-  const runLine = `Morning run · ${RUN.dist} km in ${RUN.time}${privacy ? " · home hidden" : ""}`;
-  const doCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(runLine);
-    } catch {
-      /* clipboard unavailable — still confirm, preview carries the text */
-    }
-    setCopied(true);
-    onPick("copy");
-  };
+function ShareSheet({ t, privacy, onPick, onClose }: { t: Tokens; privacy: boolean; onPick: (p: Exclude<ShareTarget, "sheet">) => void; onClose: () => void }) {
   const targets = [
     { id: "x", label: "X", bg: "#000000", fg: "#FFFFFF", Icon: XIcon },
     { id: "instagram", label: "Instagram", bg: "#E1306C", fg: "#FFFFFF", Icon: InstagramIcon },
@@ -996,19 +980,7 @@ function ShareSheet({ t, privacy, onPick, onClose }: { t: Tokens; privacy: boole
           </p>
         </div>
         <div className="mt-3 border-t pt-3" style={{ borderColor: t.faint }}>
-        <div className="grid grid-cols-5 gap-1" role="group" aria-label="Share targets">
-          <button
-            type="button"
-            onClick={doCopy}
-            className="flex min-h-[64px] flex-col items-center gap-2 py-2"
-          >
-            <span className="flex h-14 w-14 items-center justify-center rounded-full" style={{ background: t.faint, color: t.ink }} aria-hidden>
-              <CopyIcon size={22} />
-            </span>
-            <span className="text-[12px]" style={{ color: t.ink }} aria-live="polite">
-              {copied ? "Copied" : "Copy"}
-            </span>
-          </button>
+        <div className="grid grid-cols-4 gap-1" role="group" aria-label="Share targets">
           {targets.map((r) => (
             <button key={r.id} type="button" onClick={() => onPick(r.id)} className="flex min-h-[64px] flex-col items-center gap-2 py-2">
               <span className="flex h-14 w-14 items-center justify-center rounded-full" style={{ background: r.bg, color: r.fg }} aria-hidden>
@@ -1041,7 +1013,6 @@ function XPost({ t, privacy, canvas }: { t: Tokens; privacy: boolean; canvas: Sh
           </p>
         </div>
       </div>
-      <p className="pt-2.5 text-[13px] text-white">Morning loop: {RUN.dist} km in {RUN.time}.</p>
       <div className="pt-2.5">
         <ShareCard t={t} canvas={canvas} privateZones={privacy} />
       </div>
@@ -1059,7 +1030,6 @@ function StoryPreview({ t, privacy, canvas }: { t: Tokens; privacy: boolean; can
       <div className="px-4 pt-6">
         <ShareCard t={t} canvas={canvas} privateZones={privacy} />
       </div>
-      <p className="px-4 pt-4 font-mono text-[11px] tracking-[0.2em] text-white">MORNING LOOP — {RUN.dist} KM</p>
     </div>
   );
 }
@@ -1074,7 +1044,6 @@ function WAPreview({ t, privacy, canvas }: { t: Tokens; privacy: boolean; canvas
         <div>
           <ShareCard t={t} canvas={canvas} privateZones={privacy} />
         </div>
-        <p className="px-1 pb-0.5 pt-1.5 text-[12px] text-white">Morning loop done. {RUN.dist} km in {RUN.time}.</p>
         <p className="px-1 text-right font-mono text-[9px]" style={{ color: "rgba(255,255,255,0.7)" }}>
           {nowHM()} ✓✓
         </p>
@@ -1093,7 +1062,6 @@ function TelegramPreview({ t, privacy, canvas }: { t: Tokens; privacy: boolean; 
         <div>
           <ShareCard t={t} canvas={canvas} privateZones={privacy} />
         </div>
-        <p className="px-1 pb-0.5 pt-1.5 text-[12px] text-white">Morning loop done. {RUN.dist} km in {RUN.time}.</p>
         <p className="px-1 text-right font-mono text-[9px]" style={{ color: "rgba(255,255,255,0.8)" }}>
           {nowHM()} ✓✓
         </p>
@@ -1105,7 +1073,7 @@ function TelegramPreview({ t, privacy, canvas }: { t: Tokens; privacy: boolean; 
 function SharePreview({ platform, privacy, t, onBack }: { platform: Exclude<ShareTarget, "sheet">; privacy: boolean; onBack: () => void; t: Tokens }) {
   const reduced = useReducedMotion();
   const [shared, setShared] = useState(false);
-  const [copiedNote, setCopiedNote] = useState(false);
+  const [unavailable, setUnavailable] = useState(false);
   useEffect(() => {
     if (!shared) return;
     const id = setTimeout(() => setShared(false), 1600);
@@ -1132,7 +1100,6 @@ function SharePreview({ platform, privacy, t, onBack }: { platform: Exclude<Shar
     setCanvasId("photo");
     e.target.value = "";
   };
-  const shareText = `Morning run · ${RUN.dist} km in ${RUN.time}`;
   /** Rasterized poster file — shared natively or saved for manual attach. */
   const buildPosterFile = async (): Promise<File> => {
     let photo: string | undefined;
@@ -1171,7 +1138,7 @@ function SharePreview({ platform, privacy, t, onBack }: { platform: Exclude<Shar
         return true;
       }
     } catch {
-      /* native image share unavailable — text intents stand in */
+      /* native image share unavailable — SAVE is the path */
     }
     return false;
   };
@@ -1193,29 +1160,14 @@ function SharePreview({ platform, privacy, t, onBack }: { platform: Exclude<Shar
     }
   };
   const doShare = async () => {
-    if (platform === "instagram") {
-      if (await tryImageShare()) {
-        setCopiedNote(false);
-      } else {
-        try {
-          await navigator.clipboard.writeText(shareText);
-        } catch {
-          /* clipboard unavailable — caption stays visible in the preview */
-        }
-        setCopiedNote(true);
-      }
-    } else if (await tryImageShare()) {
-      /* poster travelled with the caption — nothing more to do */
+    if (await tryImageShare()) {
+      setUnavailable(false);
+      setShared(true);
     } else {
-      const url =
-        platform === "x"
-          ? `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`
-          : platform === "whatsapp"
-            ? `https://wa.me/?text=${encodeURIComponent(shareText)}`
-            : `https://t.me/share/url?url=${encodeURIComponent("")}&text=${encodeURIComponent(shareText)}`;
-      window.open(url, "_blank", "noopener");
+      // Image or nothing: no caption fallback, SAVE carries the poster.
+      setUnavailable(true);
+      setShared(false);
     }
-    setShared(true);
   };
   return (
     <motion.div
@@ -1255,14 +1207,14 @@ function SharePreview({ platform, privacy, t, onBack }: { platform: Exclude<Shar
             className="font-mono text-[11px] tracking-[0.18em]"
             style={{ color: shared ? t.dim : t.ink }}
           >
-            {shared ? (copiedNote ? "COPIED ✓" : "SHARED ✓") : "SHARE"}
+            {shared ? "SHARED ✓" : "SHARE"}
           </button>
         </div>
       </div>
       <div className="no-scrollbar flex-1 overflow-y-auto px-4 pb-8 pt-4">
-        {platform === "instagram" && (
+        {unavailable && (
           <p className="pb-3 text-[13px]" style={{ color: t.dim }}>
-            SHARE opens your system sheet with the poster — pick Instagram there. SAVE keeps the PNG for manual upload.
+            System share isn&apos;t available here — SAVE the PNG and attach it manually.
           </p>
         )}
         <div className="flex items-center justify-between pb-3">
@@ -1426,7 +1378,7 @@ export function PedometerExperience() {
           </AnimatePresence>
           <AnimatePresence>
             {stage === "run" && share === "sheet" && (
-              <ShareSheet key="sheet" t={t} privacy={privacy} onPick={(p) => setShare(p === "copy" ? "sheet" : p)} onClose={() => setShare(null)} />
+              <ShareSheet key="sheet" t={t} privacy={privacy} onPick={(p) => setShare(p)} onClose={() => setShare(null)} />
             )}
             {stage === "run" && share !== null && share !== "sheet" && (
               <SharePreview key={share} platform={share} onBack={() => setShare("sheet")} privacy={privacy} t={t} />

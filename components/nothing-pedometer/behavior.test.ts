@@ -144,20 +144,14 @@ describe("reduced motion", () => {
     expect(src).not.toContain("partly sunny 25 degrees");
   });
 
-  it("copies the real run line to the clipboard", () => {
-    expect(src).toContain("navigator.clipboard.writeText(runLine)");
-  });
-
-  it("opens real share targets instead of faking a post", () => {
-    expect(src).toContain("twitter.com/intent/tweet");
-    expect(src).toContain("wa.me/?text=");
-    expect(src).toContain("t.me/share/url");
-    expect(src).toContain("window.open(url");
-    expect(src).not.toContain("POSTED ✓");
-  });
-
-  it("explains why Instagram copies instead of posting", () => {
-    expect(src).toContain("pick Instagram there");
+  it("never falls back to text: image or SAVE, no caption", () => {
+    expect(src).not.toContain("navigator.clipboard.writeText");
+    expect(src).not.toContain("twitter.com/intent/tweet");
+    expect(src).not.toContain("wa.me/?text=");
+    expect(src).not.toContain("t.me/share/url");
+    expect(src).not.toContain("window.open(url");
+    expect(src).not.toContain("shareText");
+    expect(src).not.toContain("runLine");
   });
 
   it("offers SAVE as the guaranteed poster path", () => {
@@ -194,9 +188,11 @@ describe("reduced motion", () => {
     expect(src).toContain("· sample");
   });
 
-  it("derives platform preview copy from the run", () => {
+  it("keeps previews card-only: no caption competes with the poster", () => {
     expect(src).not.toContain("5.2 km in 32:14");
     expect(src).not.toContain("MORNING LOOP — 5.2 KM");
+    expect(src).not.toContain("Morning loop done");
+    expect(src).not.toContain("Morning loop:");
   });
 
   it("clamps the goal line so over-goal never breaks it", () => {
