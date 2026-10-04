@@ -877,6 +877,16 @@ function ShareSheet({ t, privacy, onPick, onClose }: { t: Tokens; privacy: boole
     const id = setTimeout(() => setCopied(false), 1600);
     return () => clearTimeout(id);
   }, [copied]);
+  const runLine = `Morning run · ${RUN.dist} km in ${RUN.time}${privacy ? " · home hidden" : ""}`;
+  const doCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(runLine);
+    } catch {
+      /* clipboard unavailable — still confirm, preview carries the text */
+    }
+    setCopied(true);
+    onPick("copy");
+  };
   const targets = [
     { id: "x", label: "X", bg: "#000000", fg: "#FFFFFF", Icon: XIcon },
     { id: "instagram", label: "Instagram", bg: "#E1306C", fg: "#FFFFFF", Icon: InstagramIcon },
@@ -922,7 +932,7 @@ function ShareSheet({ t, privacy, onPick, onClose }: { t: Tokens; privacy: boole
         <div className="grid grid-cols-5 gap-1" role="group" aria-label="Share targets">
           <button
             type="button"
-            onClick={() => { setCopied(true); onPick("copy"); }}
+            onClick={doCopy}
             className="flex min-h-[64px] flex-col items-center gap-2 py-2"
           >
             <span className="flex h-14 w-14 items-center justify-center rounded-full" style={{ background: t.faint, color: t.ink }} aria-hidden>

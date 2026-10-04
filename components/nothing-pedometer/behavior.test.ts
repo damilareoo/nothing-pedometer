@@ -132,6 +132,10 @@ describe("reduced motion", () => {
     expect(src).not.toContain("partly sunny 25 degrees");
   });
 
+  it("copies the real run line to the clipboard", () => {
+    expect(src).toContain("navigator.clipboard.writeText(runLine)");
+  });
+
   it("badges privacy on the artifact itself", () => {
     expect(src).toContain("HOME HIDDEN");
     expect(src).toContain("rounded-full px-2 py-0.5");
