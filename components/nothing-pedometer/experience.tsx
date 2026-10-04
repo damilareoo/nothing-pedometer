@@ -833,9 +833,16 @@ function ShareCard({ t, privateZones, canvas }: { t: Tokens; privateZones: boole
         </>
       )}
       <div className="relative">
-      <p className="font-mono text-[9px] uppercase tracking-[0.22em]" style={{ color: canvas.dim }}>
-        Morning run · {RUN.when}{privateZones ? " · HOME HIDDEN" : ""}
-      </p>
+      <div className="flex items-center justify-between gap-2">
+        <p className="font-mono text-[9px] uppercase tracking-[0.22em]" style={{ color: canvas.dim }}>
+          Morning run · {RUN.when}
+        </p>
+        {privateZones && (
+          <p className="shrink-0 rounded-full px-2 py-0.5 font-mono text-[8px] tracking-[0.18em]" style={{ background: canvas.dot, color: canvas.bg }}>
+            HOME HIDDEN
+          </p>
+        )}
+      </div>
       <div className="mt-1.5">
         <DotText text={RUN.dist} dot={3.4 * t.dotScale} pitch={10.5} color={canvas.dot} dimOpacity={t.unlit} label={`${RUN.dist} kilometres`} />
       </div>

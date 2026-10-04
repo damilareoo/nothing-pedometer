@@ -107,4 +107,9 @@ describe("reduced motion", () => {
     expect(src).toContain("Share run");
     expect(src).toContain("{RUN.dist} KM");
   });
+
+  it("badges privacy on the artifact itself", () => {
+    expect(src).toContain("HOME HIDDEN");
+    expect(src).toContain("rounded-full px-2 py-0.5");
+  });
 });
