@@ -72,7 +72,7 @@ describe("reduced motion", () => {
   });
 
   it("groups the date card as one announcement", () => {
-    expect(src).toContain("partly sunny 25 degrees");
+    expect(src).toContain('role="group" aria-label={`${weekday} ${dayMonth}`}');
   });
 
   it("marks the live position red on the goal line, like the OS range bars", () => {
@@ -125,6 +125,11 @@ describe("reduced motion", () => {
   it("stamps messages with the real send time", () => {
     expect(src).toContain("nowHM()");
     expect(src).not.toContain("06:47");
+  });
+
+  it("shows live date, never invented weather", () => {
+    expect(src).not.toContain("PARTLY SUNNY");
+    expect(src).not.toContain("partly sunny 25 degrees");
   });
 
   it("badges privacy on the artifact itself", () => {

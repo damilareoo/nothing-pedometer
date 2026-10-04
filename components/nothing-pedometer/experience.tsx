@@ -475,14 +475,12 @@ function ClockFace({ time, t }: { time: string; t: Tokens }) {
   );
 }
 
-/** Date + weather squircle, dot-matrix capitals exactly like the device. */
+/** Date squircle, dot-matrix capitals exactly like the device. Live date only — no invented weather. */
 function DateCard({ weekday, dayMonth, t }: { weekday: string; dayMonth: string; t: Tokens }) {
   return (
-    <div className="flex flex-1 flex-col justify-center gap-[8px] rounded-[28px] p-4" role="group" aria-label={`${weekday} ${dayMonth}, partly sunny 25 degrees`} style={{ background: t.widget, border: `1px solid ${t.edge}`, boxShadow: t.pop }}>
+    <div className="flex flex-1 flex-col justify-center gap-[8px] rounded-[28px] p-4" role="group" aria-label={`${weekday} ${dayMonth}`} style={{ background: t.widget, border: `1px solid ${t.edge}`, boxShadow: t.pop }}>
       <Matrix t={t} text={weekday} dot={1.15} pitch={2.6} />
       <Matrix t={t} text={dayMonth} dot={1.15} pitch={2.6} />
-      <Matrix t={t} text="PARTLY SUNNY" dot={1} pitch={2.3} />
-      <Matrix t={t} text="25°" dot={1.15} pitch={2.6} />
     </div>
   );
 }
