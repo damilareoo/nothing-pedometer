@@ -858,7 +858,7 @@ function ShareCard({ t, privateZones, canvas }: { t: Tokens; privateZones: boole
   );
 }
 
-function ShareSheet({ t, onPick, onClose }: { t: Tokens; onPick: (p: Exclude<ShareTarget, "sheet"> | "copy") => void; onClose: () => void }) {
+function ShareSheet({ t, privacy, onPick, onClose }: { t: Tokens; privacy: boolean; onPick: (p: Exclude<ShareTarget, "sheet"> | "copy") => void; onClose: () => void }) {
   const [copied, setCopied] = useState(false);
   useEffect(() => {
     if (!copied) return;
@@ -894,7 +894,13 @@ function ShareSheet({ t, onPick, onClose }: { t: Tokens; onPick: (p: Exclude<Sha
         transition={{ duration: DUR.morph, ease: EASE_EMPHASIZED }}
       >
         <div className="mx-auto h-[4px] w-[40px] rounded-full" style={{ background: t.faint }} />
-        <div className="grid grid-cols-4 gap-1 pt-3" role="group" aria-label="Share targets">
+        <p className="pt-3 font-mono text-[10px] uppercase tracking-[0.22em]" style={{ color: t.dim }}>
+          Share run
+        </p>
+        <p className="pt-1 font-mono text-[9px] tracking-[0.16em]" style={{ color: t.dim }}>
+          {RUN.dist} KM · {RUN.time}{privacy ? " · HOME HIDDEN" : ""}
+        </p>
+        <div className="grid grid-cols-4 gap-1 pt-2" role="group" aria-label="Share targets">
           <button
             type="button"
             onClick={() => { setCopied(true); onPick("copy"); }}
@@ -1201,7 +1207,7 @@ export function PedometerExperience() {
           </AnimatePresence>
           <AnimatePresence>
             {stage === "run" && share === "sheet" && (
-              <ShareSheet key="sheet" t={t} onPick={(p) => setShare(p === "copy" ? "sheet" : p)} onClose={() => setShare(null)} />
+              <ShareSheet key="sheet" t={t} privacy={privacy} onPick={(p) => setShare(p === "copy" ? "sheet" : p)} onClose={() => setShare(null)} />
             )}
             {stage === "run" && share !== null && share !== "sheet" && (
               <SharePreview key={share} platform={share} onBack={() => setShare("sheet")} privacy={privacy} t={t} />

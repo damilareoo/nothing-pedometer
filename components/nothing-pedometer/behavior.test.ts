@@ -102,4 +102,9 @@ describe("reduced motion", () => {
     expect(src).toContain("ELEV_GAIN");
     expect(src).toContain("Elevation profile, plus");
   });
+
+  it("shows what is being shared before the targets", () => {
+    expect(src).toContain("Share run");
+    expect(src).toContain("{RUN.dist} KM");
+  });
 });
