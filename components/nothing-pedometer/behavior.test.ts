@@ -117,6 +117,11 @@ describe("reduced motion", () => {
     expect(src).not.toContain('mark: "WA"');
   });
 
+  it("never fakes social proof on the draft", () => {
+    expect(src).toContain("Draft · not yet posted");
+    expect(src).not.toContain("@nothing · 2m");
+  });
+
   it("badges privacy on the artifact itself", () => {
     expect(src).toContain("HOME HIDDEN");
     expect(src).toContain("rounded-full px-2 py-0.5");

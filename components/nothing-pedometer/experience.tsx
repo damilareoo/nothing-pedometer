@@ -956,7 +956,7 @@ function XPost({ t, privacy, canvas }: { t: Tokens; privacy: boolean; canvas: Sh
         <div>
           <p className="text-[13px] font-bold text-white">Pedometer</p>
           <p className="font-mono text-[10px]" style={{ color: "rgba(255,255,255,0.5)" }}>
-            @nothing · 2m
+            Draft · not yet posted
           </p>
         </div>
       </div>
@@ -964,11 +964,9 @@ function XPost({ t, privacy, canvas }: { t: Tokens; privacy: boolean; canvas: Sh
       <div className="pt-2.5">
         <ShareCard t={t} canvas={canvas} privateZones={privacy} />
       </div>
-      <div className="flex gap-6 pt-3 font-mono text-[10px]" style={{ color: "rgba(255,255,255,0.5)" }}>
-        <span>12</span>
-        <span>48</span>
-        <span>312</span>
-      </div>
+      <p className="pt-3 font-mono text-[10px]" style={{ color: "rgba(255,255,255,0.5)" }}>
+        Replies and reposts appear after posting
+      </p>
     </div>
   );
 }
