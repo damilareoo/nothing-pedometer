@@ -1318,7 +1318,7 @@ export function PedometerExperience() {
 
   return (
     <main className="flex h-dvh flex-col items-center overflow-hidden" style={{ background: t.ground, color: t.ink }}>
-      <div className="flex items-center gap-2 pt-6" role="group" aria-label="Theme">
+      <div className="hidden items-center gap-2 pt-6 sm:flex" role="group" aria-label="Theme">
         {(["dark", "light"] as const).map((m) => (
           <button
             key={m}
@@ -1339,7 +1339,7 @@ export function PedometerExperience() {
           OS 4.1 tokens
         </span>
       </div>
-      <div className="flex h-8 items-start justify-center overflow-hidden pt-2">
+      <div className="hidden h-8 items-start justify-center overflow-hidden pt-2 sm:flex">
         <AnimatePresence mode="wait" initial={false}>
           <motion.p
             key={stage}
