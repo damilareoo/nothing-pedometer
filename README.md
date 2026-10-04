@@ -78,5 +78,29 @@ steps | null }] }`. Null days (no data yet) render as zeros. The parser
 
 ## Docs
 
-- [`CASE-STUDY.md`](./CASE-STUDY.md) — feature record, improvement log,
-  research basis, and credits.
+- [`CASE-STUDY.md`](./CASE-STUDY.md) — extended feature record, improvement
+  log, research basis, and credits. The short version lives below, so this
+  file reads as the case study on its own.
+
+## Case study (short)
+
+**Gap.** Nothing OS 4.1 on the Phone (2a) ends the fitness story early:
+daily count, weekly view, monthly view too dense to read. The morning run —
+splits, heart-rate, elevation, route — has no home in the system language.
+
+**Response.** Extend the existing widget, don't replace it. Keep its exact
+wording, then continue the story: widget → detail → run → share posters.
+
+**Decisions worth defending.** Brightness, never hue, encodes "today" so
+the one red keeps its monopoly on live position. Every chart states its
+takeaway (`PEAK/AVG/BEST`) because shapes without numbers make users
+guess. The first custom share sheet lost to device screenshots — the OS
+uses a titled sheet with content preview, so fidelity won. Anything with
+no real source (weather, social counts) was removed, not invented.
+
+**Credits.** Design language: Nothing Technology Limited (reference only,
+no affiliation). Line icons: Feather Icons (ISC). Type: system serif +
+mono + a clean-room 5×7 dot-matrix (an evocation of NDot, not the licensed
+face). Motion: `motion` library. Data: Google Health Connect via the
+owner's feed. Built stepwise with OpenCode: tests + typecheck + localhost
+check per commit.
