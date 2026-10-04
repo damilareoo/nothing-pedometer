@@ -2,9 +2,10 @@
  * Share-card canvases: the backgrounds a run poster can sit on.
  *
  * Curated, not a color picker — an open hue wheel is how a concept stops
- * looking like Nothing. Three solid inks plus one image-like gradient;
+ * looking like Nothing. Four solid inks plus one image-like gradient;
  * every canvas carries its own ink/dot/dim so contrast is guaranteed
  * rather than hoped for. Onyx is the default: the artifact's identity.
+ * Volt is Nothing's Ear (a) yellow — primary, playful, black ink only.
  */
 
 export type ShareCanvas = {
@@ -51,6 +52,15 @@ export const SHARE_CANVASES: ShareCanvas[] = [
     dot: "#FFFFFF",
     dim: "rgba(255,255,255,0.78)",
     swatch: "#E11A1B",
+  },
+  {
+    id: "volt",
+    label: "Volt",
+    bg: "#FFD60A",
+    ink: "#0A0A0A",
+    dot: "#0A0A0A",
+    dim: "rgba(10,10,10,0.62)",
+    swatch: "#FFD60A",
   },
   {
     id: "dusk",
