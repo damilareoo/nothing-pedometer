@@ -798,7 +798,7 @@ function RunScreen({ onBack, onShare, privacy, setPrivacy, t }: { onBack: () => 
                 <span className="mr-1.5 inline-block h-[7px] w-[7px] rounded-full align-baseline" style={{ background: t.red }} />
                 YOU · LIVE
               </span>
-              <span>DOT-MATRIX GPS</span>
+              <span>DOTTED ROUTE</span>
             </div>
           </div>
         </Rise>
