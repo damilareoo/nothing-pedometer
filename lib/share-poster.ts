@@ -30,9 +30,7 @@ function bgDef(bg: string, photo?: string): string {
   if (photo) {
     return (
       `<image href="${photo}" x="0" y="0" width="${POSTER_W}" height="${POSTER_H}" preserveAspectRatio="xMidYMid slice"/>` +
-      `<rect width="${POSTER_W}" height="${POSTER_H}" fill="#050508" opacity="0.45"/>` +
-      `<rect width="${POSTER_W}" height="420" fill="#050508" opacity="0.35"/>` +
-      `<rect y="${POSTER_H - 420}" width="${POSTER_W}" height="420" fill="#050508" opacity="0.4"/>`
+      `<rect width="${POSTER_W}" height="${POSTER_H}" fill="#050508" opacity="0.55"/>`
     );
   }
   const hexes = bg.match(/#[0-9A-Fa-f]{6}/g) ?? [];
@@ -49,13 +47,15 @@ export function sharePosterSVG(p: PosterSpec): string {
   const cx = POSTER_W / 2;
   const pitch = 34;
   const distW = dotTextWidth(p.dist, pitch);
+  // On photos the unlit matrix is noise over weather — lit dots only.
+  const unlit = p.photo ? 0 : 0.08;
   const mono = (size: number, ls: number) =>
     `font-family="monospace" font-size="${size}" letter-spacing="${ls}"`;
   return (
     `<svg xmlns="http://www.w3.org/2000/svg" width="${POSTER_W}" height="${POSTER_H}" viewBox="0 0 ${POSTER_W} ${POSTER_H}">` +
     bgDef(p.bg, p.photo) +
     `<text x="${cx}" y="150" text-anchor="middle" fill="${p.dim}" ${mono(30, 8)}>MORNING RUN · ${p.when}${p.privacy ? " · HOME HIDDEN" : ""}</text>` +
-    dotTextSVG(p.dist, { dot: 11.5, pitch, color: p.dot, dimOpacity: 0.08, x: cx - distW / 2, y: 230 }) +
+    dotTextSVG(p.dist, { dot: 11.5, pitch, color: p.dot, dimOpacity: unlit, x: cx - distW / 2, y: 230 }) +
     `<text x="${cx}" y="560" text-anchor="middle" fill="${p.ink}" ${mono(34, 12)}>KILOMETRES</text>` +
     `<g transform="translate(180,620) scale(2)">` +
     `<path d="${p.route}" fill="none" stroke="${p.dot}" stroke-opacity="0.9" stroke-width="3" stroke-linecap="round" stroke-dasharray="0.1 10"/>` +

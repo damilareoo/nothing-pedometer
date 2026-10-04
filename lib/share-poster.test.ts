@@ -37,7 +37,8 @@ describe("share poster", () => {
     expect(dusk).toContain("linearGradient");
     const photo = sharePosterSVG({ ...SPEC, photo: "data:image/png;base64,AAA" });
     expect(photo).toContain("<image");
-    expect(photo).toContain('opacity="0.45"');
+    expect(photo).toContain('opacity="0.55"');
+    expect(photo).not.toContain('opacity="0.08"');
   });
 
   it("emits no modern color functions a sharer could choke on", () => {

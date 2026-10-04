@@ -899,11 +899,7 @@ function ShareCard({ t, privateZones, canvas }: { t: Tokens; privateZones: boole
       {canvas.image && (
         <>
           <div className="absolute inset-0" style={{ background: `url(${canvas.image}) center/cover` }} aria-hidden />
-          <div
-            className="absolute inset-0"
-            style={{ background: "linear-gradient(180deg, rgba(5,5,8,0.62) 0%, rgba(5,5,8,0.28) 45%, rgba(5,5,8,0.66) 100%)" }}
-            aria-hidden
-          />
+          <div className="absolute inset-0" style={{ background: "rgba(5,5,8,0.55)" }} aria-hidden />
         </>
       )}
       <div className="relative">
@@ -918,7 +914,7 @@ function ShareCard({ t, privateZones, canvas }: { t: Tokens; privateZones: boole
         )}
       </div>
       <div className="mt-1.5">
-        <DotText text={RUN.dist} dot={3.4 * t.dotScale} pitch={10.5} color={canvas.dot} dimOpacity={t.unlit} label={`${RUN.dist} kilometres`} />
+        <DotText text={RUN.dist} dot={3.4 * t.dotScale} pitch={10.5} color={canvas.dot} dimOpacity={canvas.image ? 0 : t.unlit} label={`${RUN.dist} kilometres`} />
       </div>
       <p className="mt-1 font-mono text-[10px] tracking-[0.24em]" style={{ color: canvas.ink }}>KILOMETRES</p>
       <svg viewBox="0 0 360 250" className="mt-2 h-auto w-full" role="img" aria-label="Run route">

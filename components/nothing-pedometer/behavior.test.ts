@@ -177,6 +177,11 @@ describe("reduced motion", () => {
     expect(src).toContain("rounded-full px-2 py-0.5");
   });
 
+  it("keeps photos legible: flat scrim, no unlit wash", () => {
+    expect(src).toContain("rgba(5,5,8,0.55)");
+    expect(src).toContain("dimOpacity={canvas.image ? 0 : t.unlit}");
+  });
+
   it("derives platform preview copy from the run", () => {
     expect(src).not.toContain("5.2 km in 32:14");
     expect(src).not.toContain("MORNING LOOP — 5.2 KM");
