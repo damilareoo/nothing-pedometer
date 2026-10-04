@@ -43,8 +43,7 @@ function bgDef(bg: string, photo?: string): string {
   return `<rect width="${POSTER_W}" height="${POSTER_H}" fill="${hexes[0] ?? "#0B0B0D"}"/>`;
 }
 
-export function sharePosterSVG(p: PosterSpec): string {
-  const cx = POSTER_W / 2;
+export function sharePosterSVG(p: PosterSpec): string {  const cx = POSTER_W / 2;
   const pitch = 34;
   const distW = dotTextWidth(p.dist, pitch);
   // On photos the unlit matrix is noise over weather — lit dots only.
@@ -66,4 +65,34 @@ export function sharePosterSVG(p: PosterSpec): string {
     `<text x="${cx}" y="1275" text-anchor="middle" fill="${p.dim}" ${mono(26, 10)}>NOTHING · PEDOMETER</text>` +
     `</svg>`
   );
+}
+
+/**
+ * Rasterize the deterministic SVG to a PNG File — the bytes social targets
+ * actually accept. SVG files fail `canShare` on virtually every phone, which
+ * is why shares silently fell back to caption-only. Same drawing, PNG skin.
+ */
+export async function sharePosterPNG(svg: string): Promise<File> {
+  const url = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml" }));
+  try {
+    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const el = new Image();
+      el.onload = () => resolve(el);
+      el.onerror = reject;
+      el.src = url;
+    });
+    const canvas = document.createElement("canvas");
+    canvas.width = POSTER_W;
+    canvas.height = POSTER_H;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("no 2d context");
+    ctx.drawImage(img, 0, 0, POSTER_W, POSTER_H);
+    const blob = await new Promise<Blob | null>((resolve) =>
+      canvas.toBlob(resolve, "image/png"),
+    );
+    if (!blob) throw new Error("raster failed");
+    return new File([blob], "morning-run.png", { type: "image/png" });
+  } finally {
+    URL.revokeObjectURL(url);
+  }
 }

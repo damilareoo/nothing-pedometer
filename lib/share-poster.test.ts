@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
+import { readFileSync } from "fs";
+import { join } from "path";
 import { POSTER_H, POSTER_W, sharePosterSVG, type PosterSpec } from "./share-poster";
+
+const posterSrc = readFileSync(join(__dirname, "share-poster.ts"), "utf8");
 
 const SPEC: PosterSpec = {
   dist: "5.2",
@@ -44,5 +48,11 @@ describe("share poster", () => {
   it("emits no modern color functions a sharer could choke on", () => {
     const svg = sharePosterSVG(SPEC);
     expect(svg).not.toMatch(/oklch|color-mix/i);
+  });
+
+  it("rasterizes to a PNG file social targets accept, never SVG", () => {
+    expect(posterSrc).toContain("morning-run.png");
+    expect(posterSrc).toContain('"image/png"');
+    expect(posterSrc).not.toContain("morning-run.svg");
   });
 });

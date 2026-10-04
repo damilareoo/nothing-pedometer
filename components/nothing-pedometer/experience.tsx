@@ -5,7 +5,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { DUR, EASE_EMPHASIZED, EASE_OUT, STAGGER, useReducedMotion } from "@/lib/motion";
 import { THEMES, type ThemeName, type Tokens } from "@/lib/theme";
 import { SHARE_CANVASES, photoCanvas, type ShareCanvas } from "@/lib/share-canvases";
-import { sharePosterSVG } from "@/lib/share-poster";
+import { sharePosterPNG, sharePosterSVG } from "@/lib/share-poster";
 import { ROUTE } from "@/lib/route";
 import type { StepsSnapshot } from "@/lib/steps";
 import { ArrowLeft, ArrowRight, CameraIcon, CopyIcon, GearIcon, InstagramIcon, MessageIcon, PhoneIcon, SearchIcon, ShareIcon, TelegramIcon, WhatsAppIcon, XIcon } from "./icons";
@@ -1133,7 +1133,7 @@ function SharePreview({ platform, privacy, t, onBack }: { platform: Exclude<Shar
     e.target.value = "";
   };
   const shareText = `Morning run · ${RUN.dist} km in ${RUN.time}`;
-  /** The poster as deterministic SVG bytes — no DOM, no stylesheets to choke on. */
+  /** The poster as PNG bytes over native share — SVGs fail canShare on phones. */
   const tryImageShare = async (): Promise<boolean> => {
     try {
       let photo: string | undefined;
@@ -1161,7 +1161,7 @@ function SharePreview({ platform, privacy, t, onBack }: { platform: Exclude<Shar
         red: t.red,
         photo,
       });
-      const file = new File([svg], "morning-run.svg", { type: "image/svg+xml" });
+      const file = await sharePosterPNG(svg);
       if (navigator.canShare?.({ files: [file] })) {
         await navigator.share({ files: [file] });
         return true;
