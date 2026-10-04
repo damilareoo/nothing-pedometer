@@ -156,10 +156,10 @@ describe("reduced motion", () => {
   });
 
   it("carries the poster image through the native share sheet", () => {
-    expect(src).toContain("html-to-image");
+    expect(src).toContain("sharePosterSVG");
     expect(src).toContain("await navigator.share({ files: [file] })");
+    expect(src).not.toContain("html-to-image");
     expect(src).not.toContain("files: [file], text:");
-    expect(src).toContain("cardRef");
   });
 
   it("hints the first tap, then gets out of the way", () => {

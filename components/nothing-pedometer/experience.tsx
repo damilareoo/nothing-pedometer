@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { DUR, EASE_EMPHASIZED, EASE_OUT, STAGGER, useReducedMotion } from "@/lib/motion";
 import { THEMES, type ThemeName, type Tokens } from "@/lib/theme";
 import { SHARE_CANVASES, photoCanvas, type ShareCanvas } from "@/lib/share-canvases";
+import { sharePosterSVG } from "@/lib/share-poster";
 import type { StepsSnapshot } from "@/lib/steps";
 import { ArrowLeft, ArrowRight, CameraIcon, CopyIcon, GearIcon, InstagramIcon, MessageIcon, PhoneIcon, SearchIcon, ShareIcon, TelegramIcon, WhatsAppIcon, XIcon } from "./icons";
 import { DotText } from "./dot-matrix";
@@ -1030,7 +1031,7 @@ function ShareSheet({ t, privacy, onPick, onClose }: { t: Tokens; privacy: boole
   );
 }
 
-function XPost({ t, privacy, canvas, cardRef }: { t: Tokens; privacy: boolean; canvas: ShareCanvas; cardRef: React.RefObject<HTMLDivElement | null> }) {
+function XPost({ t, privacy, canvas }: { t: Tokens; privacy: boolean; canvas: ShareCanvas }) {
   return (
     <div className="rounded-[20px] border border-white/10 bg-black p-4">
       <div className="flex items-center gap-2.5">
@@ -1045,7 +1046,7 @@ function XPost({ t, privacy, canvas, cardRef }: { t: Tokens; privacy: boolean; c
         </div>
       </div>
       <p className="pt-2.5 text-[13px] text-white">Morning loop: {RUN.dist} km in {RUN.time}.</p>
-      <div className="pt-2.5" ref={cardRef}>
+      <div className="pt-2.5">
         <ShareCard t={t} canvas={canvas} privateZones={privacy} />
       </div>
       <p className="pt-3 font-mono text-[10px]" style={{ color: "rgba(255,255,255,0.5)" }}>
@@ -1055,11 +1056,11 @@ function XPost({ t, privacy, canvas, cardRef }: { t: Tokens; privacy: boolean; c
   );
 }
 
-function StoryPreview({ t, privacy, canvas, cardRef }: { t: Tokens; privacy: boolean; canvas: ShareCanvas; cardRef: React.RefObject<HTMLDivElement | null> }) {
+function StoryPreview({ t, privacy, canvas }: { t: Tokens; privacy: boolean; canvas: ShareCanvas }) {
   return (
     <div className="overflow-hidden rounded-[20px]" style={{ background: "linear-gradient(170deg, #1A1C26 0%, #3A2E38 55%, #101014 100%)", aspectRatio: "9/16" }}>
       <div className="mx-auto mt-2 h-[3px] w-16 rounded-full bg-white/40" />
-      <div className="px-4 pt-6" ref={cardRef}>
+      <div className="px-4 pt-6">
         <ShareCard t={t} canvas={canvas} privateZones={privacy} />
       </div>
       <p className="px-4 pt-4 font-mono text-[11px] tracking-[0.2em] text-white">MORNING LOOP — {RUN.dist} KM</p>
@@ -1067,14 +1068,14 @@ function StoryPreview({ t, privacy, canvas, cardRef }: { t: Tokens; privacy: boo
   );
 }
 
-function WAPreview({ t, privacy, canvas, cardRef }: { t: Tokens; privacy: boolean; canvas: ShareCanvas; cardRef: React.RefObject<HTMLDivElement | null> }) {
+function WAPreview({ t, privacy, canvas }: { t: Tokens; privacy: boolean; canvas: ShareCanvas }) {
   return (
     <div className="rounded-[20px] p-4" style={{ background: "#0B141A" }}>
       <p className="text-center font-mono text-[9px] tracking-[0.18em]" style={{ color: "rgba(255,255,255,0.45)" }}>
         TODAY
       </p>
       <div className="ml-auto mt-2 w-[94%] rounded-[14px] rounded-tr-[4px] p-2" style={{ background: "#005C4B" }}>
-        <div ref={cardRef}>
+        <div>
           <ShareCard t={t} canvas={canvas} privateZones={privacy} />
         </div>
         <p className="px-1 pb-0.5 pt-1.5 text-[12px] text-white">Morning loop done. {RUN.dist} km in {RUN.time}.</p>
@@ -1086,14 +1087,14 @@ function WAPreview({ t, privacy, canvas, cardRef }: { t: Tokens; privacy: boolea
   );
 }
 
-function TelegramPreview({ t, privacy, canvas, cardRef }: { t: Tokens; privacy: boolean; canvas: ShareCanvas; cardRef: React.RefObject<HTMLDivElement | null> }) {
+function TelegramPreview({ t, privacy, canvas }: { t: Tokens; privacy: boolean; canvas: ShareCanvas }) {
   return (
     <div className="rounded-[20px] p-4" style={{ background: "#0E1621" }}>
       <p className="text-center font-mono text-[9px] tracking-[0.18em]" style={{ color: "rgba(255,255,255,0.45)" }}>
         TODAY
       </p>
       <div className="ml-auto mt-2 w-[94%] rounded-[14px] rounded-tr-[4px] p-2" style={{ background: "#2AABEE" }}>
-        <div ref={cardRef}>
+        <div>
           <ShareCard t={t} canvas={canvas} privateZones={privacy} />
         </div>
         <p className="px-1 pb-0.5 pt-1.5 text-[12px] text-white">Morning loop done. {RUN.dist} km in {RUN.time}.</p>
@@ -1142,15 +1143,35 @@ function SharePreview({ platform, privacy, t, onBack }: { platform: Exclude<Shar
     e.target.value = "";
   };
   const shareText = `Morning run · ${RUN.dist} km in ${RUN.time}`;
-  const cardRef = useRef<HTMLDivElement | null>(null);
-  /** The poster as a PNG through the native share sheet — image only, no caption. */
+  /** The poster as deterministic SVG bytes — no DOM, no stylesheets to choke on. */
   const tryImageShare = async (): Promise<boolean> => {
-    const node = cardRef.current;
-    if (!node) return false;
     try {
-      const { toPng } = await import("html-to-image");
-      const blob = await (await fetch(await toPng(node, { pixelRatio: 2 }))).blob();
-      const file = new File([blob], "morning-run.png", { type: "image/png" });
+      let photo: string | undefined;
+      if (canvas.image) {
+        const blob = await (await fetch(canvas.image)).blob();
+        photo = await new Promise<string>((resolve, reject) => {
+          const fr = new FileReader();
+          fr.onload = () => resolve(String(fr.result));
+          fr.onerror = reject;
+          fr.readAsDataURL(blob);
+        });
+      }
+      const svg = sharePosterSVG({
+        dist: RUN.dist,
+        time: RUN.time,
+        pace: RUN.pace,
+        kcal: RUN.kcal,
+        when: RUN.when,
+        route: ROUTE,
+        privacy,
+        bg: canvas.bg,
+        ink: canvas.ink,
+        dot: canvas.dot,
+        dim: canvas.dim,
+        red: t.red,
+        photo,
+      });
+      const file = new File([svg], "morning-run.svg", { type: "image/svg+xml" });
       if (navigator.canShare?.({ files: [file] })) {
         await navigator.share({ files: [file] });
         return true;
@@ -1265,10 +1286,10 @@ function SharePreview({ platform, privacy, t, onBack }: { platform: Exclude<Shar
           </div>
         </div>
         <input ref={fileRef} type="file" accept="image/*" hidden onChange={onPhotoFile} aria-label="Upload a photo background" />
-        {platform === "x" && <XPost t={t} privacy={privacy} canvas={canvas} cardRef={cardRef} />}
-        {platform === "instagram" && <StoryPreview t={t} privacy={privacy} canvas={canvas} cardRef={cardRef} />}
-        {platform === "whatsapp" && <WAPreview t={t} privacy={privacy} canvas={canvas} cardRef={cardRef} />}
-        {platform === "telegram" && <TelegramPreview t={t} privacy={privacy} canvas={canvas} cardRef={cardRef} />}
+        {platform === "x" && <XPost t={t} privacy={privacy} canvas={canvas} />}
+        {platform === "instagram" && <StoryPreview t={t} privacy={privacy} canvas={canvas} />}
+        {platform === "whatsapp" && <WAPreview t={t} privacy={privacy} canvas={canvas} />}
+        {platform === "telegram" && <TelegramPreview t={t} privacy={privacy} canvas={canvas} />}
       </div>
     </motion.div>
   );

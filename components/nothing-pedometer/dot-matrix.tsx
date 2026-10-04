@@ -61,6 +61,28 @@ const GLYPHS: Record<string, string[]> = {
 /** Every glyph the renderer knows, for tests and callers. */
 export const KNOWN_GLYPHS = Object.keys(GLYPHS);
 
+/**
+ * Dot-matrix text as raw SVG circles — the same letterforms as <DotText>,
+ * for contexts that need an image without a DOM (share posters).
+ */
+export function dotTextSVG(
+  text: string,
+  opts: { dot?: number; pitch?: number; color?: string; dimOpacity?: number; x?: number; y?: number } = {},
+): string {
+  const { dot = 2.4, pitch = 8, color = "#ffffff", dimOpacity = 0.09, x = 0, y = 0 } = opts;
+  const upper = text.toUpperCase();
+  let s = "";
+  upper.split("").forEach((ch, ci) => {
+    const glyph = GLYPHS[ch] ?? GLYPHS[" "];
+    glyph.forEach((row, r) => {
+      row.split("").forEach((bit, c) => {
+        s += `<circle cx="${(ci * 6 * pitch + c * pitch + pitch / 2 + x).toFixed(1)}" cy="${(r * pitch + pitch / 2 + y).toFixed(1)}" r="${dot}" fill="${color}" opacity="${bit === "1" ? 1 : dimOpacity}"/>`;
+      });
+    });
+  });
+  return s;
+}
+
 /** Pixel width of a rendered string at a given pitch. One spacer column per glyph. */
 export function dotTextWidth(text: string, pitch: number): number {
   if (text.length === 0) return 0;
