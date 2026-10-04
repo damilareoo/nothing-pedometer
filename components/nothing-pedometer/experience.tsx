@@ -1099,12 +1099,12 @@ function TelegramPreview({ t, privacy, canvas }: { t: Tokens; privacy: boolean; 
 
 function SharePreview({ platform, privacy, t, onBack }: { platform: Exclude<ShareTarget, "sheet">; privacy: boolean; onBack: () => void; t: Tokens }) {
   const reduced = useReducedMotion();
-  const [posted, setPosted] = useState(false);
+  const [shared, setShared] = useState(false);
   useEffect(() => {
-    if (!posted) return;
-    const id = setTimeout(() => setPosted(false), 1600);
+    if (!shared) return;
+    const id = setTimeout(() => setShared(false), 1600);
     return () => clearTimeout(id);
-  }, [posted]);
+  }, [shared]);
   const names = { x: "X POST", instagram: "INSTAGRAM STORY", whatsapp: "WHATSAPP", telegram: "TELEGRAM" } as const;
   const [canvasId, setCanvasId] = useState(SHARE_CANVASES[0].id);
   const [photo, setPhoto] = useState<string | null>(null);
@@ -1132,6 +1132,25 @@ function SharePreview({ platform, privacy, t, onBack }: { platform: Exclude<Shar
     setPhoto(URL.createObjectURL(file));
     e.target.value = "";
   };
+  const shareText = `Morning run · ${RUN.dist} km in ${RUN.time}`;
+  const doShare = async () => {
+    if (platform === "instagram") {
+      try {
+        await navigator.clipboard.writeText(shareText);
+      } catch {
+        /* clipboard unavailable — caption stays visible in the preview */
+      }
+    } else {
+      const url =
+        platform === "x"
+          ? `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`
+          : platform === "whatsapp"
+            ? `https://wa.me/?text=${encodeURIComponent(shareText)}`
+            : `https://t.me/share/url?url=${encodeURIComponent("")}&text=${encodeURIComponent(shareText)}`;
+      window.open(url, "_blank", "noopener");
+    }
+    setShared(true);
+  };
   return (
     <motion.div
       className="absolute inset-0 flex flex-col"
@@ -1156,11 +1175,11 @@ function SharePreview({ platform, privacy, t, onBack }: { platform: Exclude<Shar
         </p>
         <button
           type="button"
-          onClick={() => setPosted(true)}
-          className="font-mono text-[11px] tracking-[0.18em]"
-          style={{ color: posted ? t.dim : t.ink }}
+          onClick={doShare}
+          className="min-h-[44px] font-mono text-[11px] tracking-[0.18em]"
+          style={{ color: shared ? t.dim : t.ink }}
         >
-          {posted ? "POSTED ✓" : "POST"}
+          {shared ? (platform === "instagram" ? "COPIED ✓" : "SHARED ✓") : platform === "instagram" ? "COPY CAPTION" : "SHARE"}
         </button>
       </div>
       <div className="no-scrollbar flex-1 overflow-y-auto px-4 pb-8 pt-4">

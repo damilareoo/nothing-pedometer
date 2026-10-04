@@ -143,6 +143,14 @@ describe("reduced motion", () => {
     expect(src).toContain("navigator.clipboard.writeText(runLine)");
   });
 
+  it("opens real share targets instead of faking a post", () => {
+    expect(src).toContain("twitter.com/intent/tweet");
+    expect(src).toContain("wa.me/?text=");
+    expect(src).toContain("t.me/share/url");
+    expect(src).toContain("window.open(url");
+    expect(src).not.toContain("POSTED ✓");
+  });
+
   it("badges privacy on the artifact itself", () => {
     expect(src).toContain("HOME HIDDEN");
     expect(src).toContain("rounded-full px-2 py-0.5");
