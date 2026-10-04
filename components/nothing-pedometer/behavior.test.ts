@@ -117,4 +117,8 @@ describe("reduced motion", () => {
     expect(src).not.toContain("5.2 km in 32:14");
     expect(src).not.toContain("MORNING LOOP — 5.2 KM");
   });
+
+  it("clamps the goal line so over-goal never breaks it", () => {
+    expect(src).toContain("Math.min(1, Math.max(0, frac))");
+  });
 });

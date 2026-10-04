@@ -147,7 +147,8 @@ function Rise({ index = 0, className, children }: { index?: number; className?: 
  * way on its forecast range bars, and red is live position in this system.
  */
 function DottedLine({ frac, total = 30, t }: { frac: number; total?: number; t: Tokens }) {
-  const on = Math.round(frac * total);
+  const clamped = Math.min(1, Math.max(0, frac));
+  const on = Math.round(clamped * total);
   return (
     <div className="flex items-center gap-[5px]" aria-hidden>
       {Array.from({ length: total }).map((_, i) => {
