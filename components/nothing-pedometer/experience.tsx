@@ -908,6 +908,29 @@ function ShareCard({ t, privateZones, canvas }: { t: Tokens; privateZones: boole
         </>
       )}
       <div className="relative">
+      {canvas.image ? (
+        <div className="flex min-h-[380px] flex-col items-center justify-center py-8 text-center">
+          <p className="font-mono text-[10px] uppercase tracking-[0.28em]" style={{ color: canvas.dim }}>
+            Distance
+          </p>
+          <p className="pt-1 text-[44px] font-bold leading-none text-white">{RUN.dist} km</p>
+          <p className="pt-4 font-mono text-[10px] uppercase tracking-[0.28em]" style={{ color: canvas.dim }}>
+            Pace
+          </p>
+          <p className="pt-1 text-[28px] font-bold leading-none text-white">{RUN.pace}/km</p>
+          <p className="pt-4 font-mono text-[10px] uppercase tracking-[0.28em]" style={{ color: canvas.dim }}>
+            Time
+          </p>
+          <p className="pt-1 text-[28px] font-bold leading-none text-white">{RUN.time}</p>
+          <svg viewBox="0 0 120 60" className="mt-5 h-[44px] w-[88px]" role="img" aria-label="Run route">
+            <path d={ROUTE} fill="none" stroke={canvas.dot} strokeOpacity={0.95} strokeWidth={10} strokeLinecap="round" strokeDasharray="0.1 14" transform="translate(-30,-95) scale(0.42)" />
+          </svg>
+          <p className="pt-3 font-mono text-[9px] uppercase tracking-[0.3em]" style={{ color: canvas.dim }}>
+            Nothing · Pedometer{privateZones ? " · Home hidden" : ""}
+          </p>
+        </div>
+      ) : (
+      <>
       <div className="flex items-center justify-between gap-2">
         <p className="font-mono text-[9px] uppercase tracking-[0.22em]" style={{ color: canvas.dim }}>
           Morning run · {RUN.when}
@@ -935,6 +958,8 @@ function ShareCard({ t, privateZones, canvas }: { t: Tokens; privateZones: boole
       <p className="mt-2.5 font-mono text-[8px] uppercase tracking-[0.26em]" style={{ color: canvas.dim }}>
         Nothing · Pedometer
       </p>
+      </>
+      )}
       </div>
     </div>
   );
