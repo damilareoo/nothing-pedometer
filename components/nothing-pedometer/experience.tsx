@@ -950,7 +950,7 @@ function XPost({ t, privacy, canvas }: { t: Tokens; privacy: boolean; canvas: Sh
           </p>
         </div>
       </div>
-      <p className="pt-2.5 text-[13px] text-white">Morning loop: 5.2 km in 32:14.</p>
+      <p className="pt-2.5 text-[13px] text-white">Morning loop: {RUN.dist} km in {RUN.time}.</p>
       <div className="pt-2.5">
         <ShareCard t={t} canvas={canvas} privateZones={privacy} />
       </div>
@@ -970,7 +970,7 @@ function StoryPreview({ t, privacy, canvas }: { t: Tokens; privacy: boolean; can
       <div className="px-4 pt-6">
         <ShareCard t={t} canvas={canvas} privateZones={privacy} />
       </div>
-      <p className="px-4 pt-4 font-mono text-[11px] tracking-[0.2em] text-white">MORNING LOOP — 5.2 KM</p>
+      <p className="px-4 pt-4 font-mono text-[11px] tracking-[0.2em] text-white">MORNING LOOP — {RUN.dist} KM</p>
     </div>
   );
 }
@@ -983,7 +983,7 @@ function WAPreview({ t, privacy, canvas }: { t: Tokens; privacy: boolean; canvas
       </p>
       <div className="ml-auto mt-2 w-[94%] rounded-[14px] rounded-tr-[4px] p-2" style={{ background: "#005C4B" }}>
         <ShareCard t={t} canvas={canvas} privateZones={privacy} />
-        <p className="px-1 pb-0.5 pt-1.5 text-[12px] text-white">Morning loop done. 5.2 km in 32:14.</p>
+        <p className="px-1 pb-0.5 pt-1.5 text-[12px] text-white">Morning loop done. {RUN.dist} km in {RUN.time}.</p>
         <p className="px-1 text-right font-mono text-[9px]" style={{ color: "rgba(255,255,255,0.7)" }}>
           06:47 ✓✓
         </p>

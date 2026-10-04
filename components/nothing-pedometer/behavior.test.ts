@@ -112,4 +112,9 @@ describe("reduced motion", () => {
     expect(src).toContain("HOME HIDDEN");
     expect(src).toContain("rounded-full px-2 py-0.5");
   });
+
+  it("derives platform preview copy from the run", () => {
+    expect(src).not.toContain("5.2 km in 32:14");
+    expect(src).not.toContain("MORNING LOOP — 5.2 KM");
+  });
 });
