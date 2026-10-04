@@ -46,4 +46,11 @@ describe("share canvases", () => {
     expect(c.ink).toBe("#FFFFFF");
     expect(c.dot).toBe("#FFFFFF");
   });
+
+  it("stays legible even when the photo URL is empty", () => {
+    const c = photoCanvas("");
+    expect(c.ink).toBe("#FFFFFF");
+    expect(c.dot).toBe("#FFFFFF");
+    expect(c.bg).toBe("#0B0B0D");
+  });
 });
