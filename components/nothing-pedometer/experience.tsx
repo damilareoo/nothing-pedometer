@@ -1109,6 +1109,7 @@ function TelegramPreview({ t, privacy, canvas, cardRef }: { t: Tokens; privacy: 
 function SharePreview({ platform, privacy, t, onBack }: { platform: Exclude<ShareTarget, "sheet">; privacy: boolean; onBack: () => void; t: Tokens }) {
   const reduced = useReducedMotion();
   const [shared, setShared] = useState(false);
+  const [copiedNote, setCopiedNote] = useState(false);
   useEffect(() => {
     if (!shared) return;
     const id = setTimeout(() => setShared(false), 1600);
@@ -1162,10 +1163,15 @@ function SharePreview({ platform, privacy, t, onBack }: { platform: Exclude<Shar
   };
   const doShare = async () => {
     if (platform === "instagram") {
-      try {
-        await navigator.clipboard.writeText(shareText);
-      } catch {
-        /* clipboard unavailable — caption stays visible in the preview */
+      if (await tryImageShare()) {
+        setCopiedNote(false);
+      } else {
+        try {
+          await navigator.clipboard.writeText(shareText);
+        } catch {
+          /* clipboard unavailable — caption stays visible in the preview */
+        }
+        setCopiedNote(true);
       }
     } else if (await tryImageShare()) {
       /* poster travelled with the caption — nothing more to do */
@@ -1208,13 +1214,13 @@ function SharePreview({ platform, privacy, t, onBack }: { platform: Exclude<Shar
           className="min-h-[44px] font-mono text-[11px] tracking-[0.18em]"
           style={{ color: shared ? t.dim : t.ink }}
         >
-          {shared ? (platform === "instagram" ? "COPIED ✓" : "SHARED ✓") : platform === "instagram" ? "COPY CAPTION" : "SHARE"}
+          {shared ? (copiedNote ? "COPIED ✓" : "SHARED ✓") : "SHARE"}
         </button>
       </div>
       <div className="no-scrollbar flex-1 overflow-y-auto px-4 pb-8 pt-4">
         {platform === "instagram" && (
           <p className="pb-3 text-[13px]" style={{ color: t.dim }}>
-            Instagram accepts no direct shares from a browser — this copies your run caption for pasting into the app.
+            The poster goes through your system sheet — pick Instagram there. Caption copy is the fallback.
           </p>
         )}
         <div className="flex items-center justify-between pb-3">

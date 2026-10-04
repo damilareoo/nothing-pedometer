@@ -152,7 +152,7 @@ describe("reduced motion", () => {
   });
 
   it("explains why Instagram copies instead of posting", () => {
-    expect(src).toContain("Instagram accepts no direct shares");
+    expect(src).toContain("pick Instagram there");
   });
 
   it("carries the poster image through the native share sheet", () => {
