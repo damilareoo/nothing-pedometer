@@ -82,6 +82,21 @@ steps | null }] }`. Null days (no data yet) render as zeros. The parser
   log, research basis, and credits. The short version lives below, so this
   file reads as the case study on its own.
 
+## Trying it (send testers this)
+
+Live link: `https://nothing-pedometer.vercel.app` — no scroll, the phone
+frame fits the window like a SwiftUI preview. Where to tap:
+
+1. Home shows `TAP THE WIDGET ↑` until the first tap — tap the step widget.
+2. Detail counts up your live steps; toggle `DAY/WEEK`; tap `TODAY'S RUN`.
+3. Run screen: flip the privacy zone, watch the trace mask; tap `SHARE`.
+4. Sheet → pick a platform → poster preview with canvas picker (Onyx, Bone,
+   Signal, Volt, Dusk, photo). X/WhatsApp/Telegram open real share
+   targets; Instagram copies the caption (it accepts no direct web shares).
+
+Step counts are the owner's live Health Connect feed; everything else is a
+curated sample dataset until the feed gains a run object (stated, not hidden).
+
 ## Case study (short)
 
 **Gap.** Nothing OS 4.1 on the Phone (2a) ends the fitness story early:
