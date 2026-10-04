@@ -614,12 +614,14 @@ function HomeScreen({
   shellId,
   t,
   live,
+  fresh,
 }: {
   now: { time: string; dateLine: string; weekday: string; dayMonth: string };
   onOpen: () => void;
   shellId?: string;
   t: Tokens;
   live: StepsSnapshot | null;
+  fresh: boolean;
 }) {
   return (
     <motion.div
@@ -635,6 +637,9 @@ function HomeScreen({
       <div className="flex justify-end px-4 pt-3">
         <PedoWidget onOpen={onOpen} shellId={shellId} t={t} live={live} />
       </div>
+      <p className="px-4 pt-2 text-right font-mono text-[9px] tracking-[0.2em]" style={{ color: fresh ? t.dim : "transparent" }} aria-hidden={!fresh}>
+        {fresh ? "TAP THE WIDGET ↑" : "·"}
+      </p>
       <Dock t={t} />
     </motion.div>
   );
@@ -1288,7 +1293,7 @@ export function PedometerExperience() {
   }, []);
 
   return (
-    <main className="flex min-h-dvh flex-col items-center" style={{ background: t.ground, color: t.ink }}>
+    <main className="flex h-dvh flex-col items-center overflow-hidden" style={{ background: t.ground, color: t.ink }}>
       <div className="flex items-center gap-2 pt-6" role="group" aria-label="Theme">
         {(["dark", "light"] as const).map((m) => (
           <button
@@ -1325,15 +1330,15 @@ export function PedometerExperience() {
           </motion.p>
         </AnimatePresence>
       </div>
-      <div className="flex w-full flex-1 items-center justify-center sm:py-6">
+      <div className="flex min-h-0 w-full flex-1 items-center justify-center sm:py-4">
         <div
-          className="relative h-dvh w-full overflow-hidden sm:h-[860px] sm:w-[400px] sm:rounded-[40px] sm:ring-1 sm:ring-white/15"
+          className="relative h-full w-full overflow-hidden sm:h-[860px] sm:max-h-[calc(100dvh-150px)] sm:w-[400px] sm:rounded-[40px] sm:ring-1 sm:ring-white/15"
           style={{ boxShadow: t.pop }}
           role="region"
           aria-label="Nothing Phone pedometer concept"
         >
           <AnimatePresence>
-            {stage === "home" && <HomeScreen key="home" now={now} onOpen={open} shellId={shellId} t={t} live={live} />}
+            {stage === "home" && <HomeScreen key="home" now={now} onOpen={open} shellId={shellId} t={t} live={live} fresh={visits === 0} />}
             {stage === "detail" && (
               <DetailScreen key="detail" onClose={() => setStage("home")} onRun={() => setStage("run")} visits={visits} shellId={shellId} t={t} live={live} />
             )}

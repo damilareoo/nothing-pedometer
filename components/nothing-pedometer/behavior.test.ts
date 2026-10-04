@@ -155,6 +155,11 @@ describe("reduced motion", () => {
     expect(src).toContain("Instagram accepts no direct shares");
   });
 
+  it("hints the first tap, then gets out of the way", () => {
+    expect(src).toContain("TAP THE WIDGET");
+    expect(src).toContain("fresh={visits === 0}");
+  });
+
   it("badges privacy on the artifact itself", () => {
     expect(src).toContain("HOME HIDDEN");
     expect(src).toContain("rounded-full px-2 py-0.5");
