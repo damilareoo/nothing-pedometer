@@ -61,6 +61,8 @@ const PEAK_HOUR = HOURLY.indexOf(Math.max(...HOURLY));
 const PEAK_STEPS = Math.max(...HOURLY).toLocaleString("en-US");
 
 const RUN = { dist: "5.2", time: "32:14", pace: "6'12''", kcal: "268", when: "06:42" };
+/** The run is a curated sample until the feed serves ExerciseSessions. */
+const RUN_SAMPLE = true;
 
 const SPLITS = [
   { km: "01", pace: "6'05''", hr: "146" },
@@ -785,7 +787,7 @@ function RunScreen({ onBack, onShare, privacy, setPrivacy, t }: { onBack: () => 
           Morning run
         </h1>
         <p className={`${MICRO} px-5 pt-2`} style={{ color: t.dim }}>
-          {RUN.when} · {RUN.dist} kilometres
+          {RUN.when} · {RUN.dist} kilometres{RUN_SAMPLE ? " · sample" : ""}
         </p>
 
         <div className="px-5 pt-4">
@@ -905,7 +907,7 @@ function ShareCard({ t, privateZones, canvas }: { t: Tokens; privateZones: boole
       <div className="relative">
       <div className="flex items-center justify-between gap-2">
         <p className="font-mono text-[9px] uppercase tracking-[0.22em]" style={{ color: canvas.dim }}>
-          Morning run · {RUN.when}
+          Morning run · {RUN.when}{RUN_SAMPLE ? " · sample" : ""}
         </p>
         {privateZones && (
           <p className="shrink-0 rounded-full px-2 py-0.5 font-mono text-[8px] tracking-[0.18em]" style={{ background: canvas.chip, color: canvas.onChip }}>
@@ -990,7 +992,7 @@ function ShareSheet({ t, privacy, onPick, onClose }: { t: Tokens; privacy: boole
             <span className="font-mono text-[10px]">5K</span>
           </span>
           <p className="truncate text-[13px]" style={{ color: t.ink }}>
-            Morning run · {RUN.dist} km in {RUN.time}{privacy ? " · home hidden" : ""}
+            Morning run · {RUN.dist} km in {RUN.time}{privacy ? " · home hidden" : ""}{RUN_SAMPLE ? " · sample" : ""}
           </p>
         </div>
         <div className="mt-3 border-t pt-3" style={{ borderColor: t.faint }}>

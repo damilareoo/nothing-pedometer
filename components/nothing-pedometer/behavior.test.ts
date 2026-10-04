@@ -182,6 +182,11 @@ describe("reduced motion", () => {
     expect(src).toContain("dimOpacity={canvas.image ? 0 : t.unlit}");
   });
 
+  it("marks the run as sample beside live steps", () => {
+    expect(src).toContain("RUN_SAMPLE");
+    expect(src).toContain("· sample");
+  });
+
   it("derives platform preview copy from the run", () => {
     expect(src).not.toContain("5.2 km in 32:14");
     expect(src).not.toContain("MORNING LOOP — 5.2 KM");
