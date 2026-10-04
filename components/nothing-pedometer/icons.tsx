@@ -110,3 +110,55 @@ export function GearIcon(p: P) {
     </Base>
   );
 }
+
+/** Filled base for brand marks — brands read by silhouette, never stroke. */
+function Brand({ size = 22, className, children, label }: P & { children: React.ReactNode; label: string }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      className={className}
+      role="img"
+      aria-label={label}
+    >
+      {children}
+    </svg>
+  );
+}
+
+export function XIcon(p: P) {
+  return (
+    <Brand {...p} label="X">
+      <path d="M18.9 2H22l-6.8 7.8L23.3 22h-6.3l-4.9-6.4L6.5 22H3.4l7.3-8.3L1 2h6.5l4.4 5.9L18.9 2zm-1.1 18h1.7L7.1 3.9H5.3L17.8 20z" />
+    </Brand>
+  );
+}
+
+export function InstagramIcon(p: P) {
+  return (
+    <Base {...p} label="Instagram">
+      <rect x={2} y={2} width={20} height={20} rx={5} />
+      <circle cx={12} cy={12} r={4} />
+      <circle cx={17.5} cy={6.5} r={0.5} fill="currentColor" />
+    </Base>
+  );
+}
+
+export function WhatsAppIcon(p: P) {
+  return (
+    <Brand {...p} label="WhatsApp">
+      <path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.1l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.6-6.1c-.3-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4 0-.5.2-.7l.5-.6c.1-.2.1-.4 0-.5L9.6 8.2c-.2-.5-.4-.4-.6-.4h-.5c-.2 0-.5.2-.7.5-.2.3-.9.9-.9 2.2s.9 2.5 1.1 2.7c.1.2 1.9 2.9 4.5 4 .6.3 1.1.4 1.5.6.6.2 1.2.2 1.6.1.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.2-1.2l-.5-.2z" />
+    </Brand>
+  );
+}
+
+export function TelegramIcon(p: P) {
+  return (
+    <Base {...p} label="Telegram">
+      <line x1="22" y1="2" x2="11" y2="13" />
+      <polygon points="22 2 15 22 11 13 2 9 22 2" />
+    </Base>
+  );
+}

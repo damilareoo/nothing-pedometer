@@ -5,7 +5,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { DUR, EASE_EMPHASIZED, EASE_OUT, STAGGER, useReducedMotion } from "@/lib/motion";
 import { THEMES, type ThemeName, type Tokens } from "@/lib/theme";
 import { SHARE_CANVASES, photoCanvas, type ShareCanvas } from "@/lib/share-canvases";
-import { ArrowLeft, ArrowRight, CameraIcon, CopyIcon, GearIcon, MessageIcon, PhoneIcon, SearchIcon, ShareIcon } from "./icons";
+import { ArrowLeft, ArrowRight, CameraIcon, CopyIcon, GearIcon, InstagramIcon, MessageIcon, PhoneIcon, SearchIcon, ShareIcon, TelegramIcon, WhatsAppIcon, XIcon } from "./icons";
 import { DotText } from "./dot-matrix";
 
 /**
@@ -817,7 +817,7 @@ function RunScreen({ onBack, onShare, privacy, setPrivacy, t }: { onBack: () => 
 
 /* ---------------------------------- share ----------------------------------- */
 
-type ShareTarget = "sheet" | "x" | "instagram" | "whatsapp";
+type ShareTarget = "sheet" | "x" | "instagram" | "whatsapp" | "telegram";
 
 /** The artifact: what actually travels when a run is shared. Canvas-styled. */
 function ShareCard({ t, privateZones, canvas }: { t: Tokens; privateZones: boolean; canvas: ShareCanvas }) {
@@ -874,9 +874,10 @@ function ShareSheet({ t, privacy, onPick, onClose }: { t: Tokens; privacy: boole
     return () => clearTimeout(id);
   }, [copied]);
   const targets = [
-    { id: "x", label: "X", mark: "X", bg: "#000000", fg: "#FFFFFF" },
-    { id: "instagram", label: "Instagram", mark: "IG", bg: "#E1306C", fg: "#FFFFFF" },
-    { id: "whatsapp", label: "WhatsApp", mark: "WA", bg: "#25D366", fg: "#FFFFFF" },
+    { id: "x", label: "X", bg: "#000000", fg: "#FFFFFF", Icon: XIcon },
+    { id: "instagram", label: "Instagram", bg: "#E1306C", fg: "#FFFFFF", Icon: InstagramIcon },
+    { id: "whatsapp", label: "WhatsApp", bg: "#25D366", fg: "#FFFFFF", Icon: WhatsAppIcon },
+    { id: "telegram", label: "Telegram", bg: "#229ED9", fg: "#FFFFFF", Icon: TelegramIcon },
   ] as const;
   return (
     <>
@@ -914,11 +915,11 @@ function ShareSheet({ t, privacy, onPick, onClose }: { t: Tokens; privacy: boole
           </p>
         </div>
         <div className="mt-3 border-t pt-3" style={{ borderColor: t.faint }}>
-        <div className="grid grid-cols-4 gap-1" role="group" aria-label="Share targets">
+        <div className="grid grid-cols-5 gap-1" role="group" aria-label="Share targets">
           <button
             type="button"
             onClick={() => { setCopied(true); onPick("copy"); }}
-            className="flex flex-col items-center gap-2 py-2"
+            className="flex min-h-[64px] flex-col items-center gap-2 py-2"
           >
             <span className="flex h-14 w-14 items-center justify-center rounded-full" style={{ background: t.faint, color: t.ink }} aria-hidden>
               <CopyIcon size={22} />
@@ -928,9 +929,9 @@ function ShareSheet({ t, privacy, onPick, onClose }: { t: Tokens; privacy: boole
             </span>
           </button>
           {targets.map((r) => (
-            <button key={r.id} type="button" onClick={() => onPick(r.id)} className="flex flex-col items-center gap-2 py-2">
-              <span className="flex h-14 w-14 items-center justify-center rounded-full text-[13px] font-medium" style={{ background: r.bg, color: r.fg }} aria-hidden>
-                {r.mark}
+            <button key={r.id} type="button" onClick={() => onPick(r.id)} className="flex min-h-[64px] flex-col items-center gap-2 py-2">
+              <span className="flex h-14 w-14 items-center justify-center rounded-full" style={{ background: r.bg, color: r.fg }} aria-hidden>
+                <r.Icon size={22} />
               </span>
               <span className="text-[12px]" style={{ color: t.ink }}>
                 {r.label}
@@ -1001,6 +1002,23 @@ function WAPreview({ t, privacy, canvas }: { t: Tokens; privacy: boolean; canvas
   );
 }
 
+function TelegramPreview({ t, privacy, canvas }: { t: Tokens; privacy: boolean; canvas: ShareCanvas }) {
+  return (
+    <div className="rounded-[20px] p-4" style={{ background: "#0E1621" }}>
+      <p className="text-center font-mono text-[9px] tracking-[0.18em]" style={{ color: "rgba(255,255,255,0.45)" }}>
+        TODAY
+      </p>
+      <div className="ml-auto mt-2 w-[94%] rounded-[14px] rounded-tr-[4px] p-2" style={{ background: "#2AABEE" }}>
+        <ShareCard t={t} canvas={canvas} privateZones={privacy} />
+        <p className="px-1 pb-0.5 pt-1.5 text-[12px] text-white">Morning loop done. {RUN.dist} km in {RUN.time}.</p>
+        <p className="px-1 text-right font-mono text-[9px]" style={{ color: "rgba(255,255,255,0.8)" }}>
+          06:47 ✓✓
+        </p>
+      </div>
+    </div>
+  );
+}
+
 function SharePreview({ platform, privacy, t, onBack }: { platform: Exclude<ShareTarget, "sheet">; privacy: boolean; onBack: () => void; t: Tokens }) {
   const reduced = useReducedMotion();
   const [posted, setPosted] = useState(false);
@@ -1009,7 +1027,7 @@ function SharePreview({ platform, privacy, t, onBack }: { platform: Exclude<Shar
     const id = setTimeout(() => setPosted(false), 1600);
     return () => clearTimeout(id);
   }, [posted]);
-  const names = { x: "X POST", instagram: "INSTAGRAM STORY", whatsapp: "WHATSAPP" } as const;
+  const names = { x: "X POST", instagram: "INSTAGRAM STORY", whatsapp: "WHATSAPP", telegram: "TELEGRAM" } as const;
   const [canvasId, setCanvasId] = useState(SHARE_CANVASES[0].id);
   const [photo, setPhoto] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -1114,6 +1132,7 @@ function SharePreview({ platform, privacy, t, onBack }: { platform: Exclude<Shar
         {platform === "x" && <XPost t={t} privacy={privacy} canvas={canvas} />}
         {platform === "instagram" && <StoryPreview t={t} privacy={privacy} canvas={canvas} />}
         {platform === "whatsapp" && <WAPreview t={t} privacy={privacy} canvas={canvas} />}
+        {platform === "telegram" && <TelegramPreview t={t} privacy={privacy} canvas={canvas} />}
       </div>
     </motion.div>
   );

@@ -108,6 +108,15 @@ describe("reduced motion", () => {
     expect(src).toContain("Morning run ·");
   });
 
+  it("draws brand marks, never text monograms", () => {
+    for (const icon of ["XIcon", "InstagramIcon", "WhatsAppIcon", "TelegramIcon"]) {
+      expect(src).toContain(icon);
+    }
+    expect(src).toContain("<r.Icon");
+    expect(src).not.toContain('mark: "IG"');
+    expect(src).not.toContain('mark: "WA"');
+  });
+
   it("badges privacy on the artifact itself", () => {
     expect(src).toContain("HOME HIDDEN");
     expect(src).toContain("rounded-full px-2 py-0.5");
