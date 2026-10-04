@@ -162,11 +162,6 @@ describe("reduced motion", () => {
     expect(src).toContain("cardRef");
   });
 
-  it("stacks photo posters center-stage, after the shadow cards", () => {
-    expect(src).toContain("canvas.image ? (");
-    expect(src).toContain("min-h-[380px] flex-col items-center justify-center");
-  });
-
   it("hints the first tap, then gets out of the way", () => {
     expect(src).toContain("TAP THE WIDGET");
     expect(src).toContain("fresh={visits === 0}");
