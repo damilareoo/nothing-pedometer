@@ -155,6 +155,12 @@ describe("reduced motion", () => {
     expect(src).toContain("Instagram accepts no direct shares");
   });
 
+  it("carries the poster image through the native share sheet", () => {
+    expect(src).toContain("html-to-image");
+    expect(src).toContain("navigator.share({ files: [file]");
+    expect(src).toContain("cardRef");
+  });
+
   it("hints the first tap, then gets out of the way", () => {
     expect(src).toContain("TAP THE WIDGET");
     expect(src).toContain("fresh={visits === 0}");
