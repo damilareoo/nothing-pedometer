@@ -1143,7 +1143,7 @@ function SharePreview({ platform, privacy, t, onBack }: { platform: Exclude<Shar
   };
   const shareText = `Morning run · ${RUN.dist} km in ${RUN.time}`;
   const cardRef = useRef<HTMLDivElement | null>(null);
-  /** The poster as a PNG through the native share sheet when it can carry files. */
+  /** The poster as a PNG through the native share sheet — image only, no caption. */
   const tryImageShare = async (): Promise<boolean> => {
     const node = cardRef.current;
     if (!node) return false;
@@ -1152,7 +1152,7 @@ function SharePreview({ platform, privacy, t, onBack }: { platform: Exclude<Shar
       const blob = await (await fetch(await toPng(node, { pixelRatio: 2 }))).blob();
       const file = new File([blob], "morning-run.png", { type: "image/png" });
       if (navigator.canShare?.({ files: [file] })) {
-        await navigator.share({ files: [file], text: shareText });
+        await navigator.share({ files: [file] });
         return true;
       }
     } catch {
