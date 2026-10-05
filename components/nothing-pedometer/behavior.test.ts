@@ -130,13 +130,24 @@ describe("reduced motion", () => {
     expect(src).toContain("Morning run ·");
   });
 
-  it("draws brand marks, never text monograms", () => {
+  it("draws official brand marks, never text monograms or redraws", () => {
     for (const icon of ["XIcon", "InstagramIcon", "WhatsAppIcon", "TelegramIcon"]) {
       expect(src).toContain(icon);
     }
     expect(src).toContain("<r.Icon");
     expect(src).not.toContain('mark: "IG"');
     expect(src).not.toContain('mark: "WA"');
+    const icons = readFileSync(join(__dirname, "icons.tsx"), "utf8");
+    expect(icons).toContain("Simple Icons, CC0");
+    for (const mark of ["M14.234 10.162", "M7.0301.084", "M17.472 14.382", "M11.944 0A12"]) {
+      expect(icons).toContain(mark);
+    }
+    expect(icons.match(/<Brand /g)?.length).toBe(4);
+  });
+
+  it("shows the privacy zone extent on the map, not just the erasure", () => {
+    expect(src).toContain('strokeDasharray="3 4"');
+    expect(src).toContain("HOME ZONE HIDDEN");
   });
 
   it("never fakes social proof on the draft", () => {
@@ -246,10 +257,21 @@ describe("reduced motion", () => {
     expect(heads.length).toBe(3);
   });
 
-  it("never promises a real run: the entry is labelled sample until sessions land", () => {
-    expect(src).toContain("SAMPLE RUN ·");
-    expect(src).toContain('aria-label="View sample run"');
+  it("keeps the readout label to one bounded line, never wrapping", () => {
+    expect(src).not.toContain(":00 · STEPS");
+    expect(src).toContain("whitespace-nowrap pb-1 text-right");
+  });
+
+  it("keeps the 44px range target with a slim 34px visual pill", () => {
+    expect(src).toContain("min-h-[44px] min-w-[64px]");
+    expect(src).toContain("bottom-[5px] top-[5px]");
+  });
+
+  it("names the run concept without promising today's data", () => {
+    expect(src).toContain("MORNING RUN ·");
+    expect(src).toContain('aria-label="View morning run"');
     expect(src).not.toContain("View today's run");
     expect(src).not.toContain("TODAY&apos;S RUN");
+    expect(src).not.toContain("SAMPLE RUN ·");
   });
 });

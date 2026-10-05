@@ -58,8 +58,8 @@ export function sharePosterSVG(p: PosterSpec): string {  const cx = POSTER_W / 2
     `<text x="${cx}" y="560" text-anchor="middle" fill="${p.ink}" ${mono(34, 12)}>KILOMETRES</text>` +
     `<g transform="translate(180,620) scale(2)">` +
     `<path d="${p.route}" fill="none" stroke="${p.dot}" stroke-opacity="0.9" stroke-width="3" stroke-linecap="round" stroke-dasharray="0.1 10"/>` +
-    `<circle cx="44" cy="200" r="7" fill="${p.dot}" opacity="${p.privacy ? 0.2 : 1}"/>` +
-    `<circle cx="96" cy="200" r="7" fill="${p.red}" opacity="${p.privacy ? 0.2 : 1}"/>` +
+    `<circle cx="44" cy="200" r="7" fill="${p.dot}" opacity="${p.privacy ? 0 : 1}"/>` +
+    `<circle cx="96" cy="200" r="7" fill="${p.red}" opacity="${p.privacy ? 0 : 1}"/>` +
     `</g>` +
     `<text x="${cx}" y="1210" text-anchor="middle" fill="${p.ink}" ${mono(40, 4)}>${p.time}   ${p.pace}/KM   ${p.kcal} KCAL</text>` +
     `<text x="${cx}" y="1275" text-anchor="middle" fill="${p.dim}" ${mono(26, 10)}>NOTHING · PEDOMETER</text>` +

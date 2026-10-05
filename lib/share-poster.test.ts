@@ -36,6 +36,12 @@ describe("share poster", () => {
     expect(svg).toContain('opacity="1"');
   });
 
+  it("removes endpoints from the artifact when privacy is on — hidden, not ghosted", () => {
+    const svg = sharePosterSVG(SPEC);
+    expect(svg).toContain('opacity="0"');
+    expect(svg).not.toContain('opacity="0.2"');
+  });
+
   it("paints gradients and photos without trusting them for legibility", () => {
     const dusk = sharePosterSVG({ ...SPEC, bg: "linear-gradient(165deg, #232838 0%, #0C0C10 100%)" });
     expect(dusk).toContain("linearGradient");

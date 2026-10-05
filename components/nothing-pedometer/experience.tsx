@@ -377,6 +377,7 @@ function ActivityCard({ t, live }: { t: Tokens; live: StepsSnapshot | null }) {
           {(["day", "week"] as const).map((r) => {
             const active = range === r;
             return (
+              /* 44px finger target, 34px visual pill — tap ease without the chunk */
               <button
                 key={r}
                 type="button"
@@ -388,7 +389,7 @@ function ActivityCard({ t, live }: { t: Tokens; live: StepsSnapshot | null }) {
                 {active && (
                   <motion.span
                     layoutId="range-thumb"
-                    className="absolute inset-0 rounded-full"
+                    className="absolute inset-x-1 bottom-[5px] top-[5px] rounded-full"
                     style={{ background: t.dot }}
                     transition={{ duration: DUR.base, ease: EASE_OUT }}
                   />
@@ -409,8 +410,11 @@ function ActivityCard({ t, live }: { t: Tokens; live: StepsSnapshot | null }) {
           label={`${(range === "day" ? HOURLY[selHour] : week[day].v).toLocaleString("en-US")} steps`}
           slots={6}
         />
-        <p className="pb-1 text-right font-mono text-[9px] tracking-[0.18em]" style={{ color: t.dim }}>
-          {range === "day" ? `${String(selHour).padStart(2, "0")}:00 · STEPS` : `${names[day]}${day === today ? " · TODAY" : ""}${day === bestIdx ? " · BEST" : ""}`}
+        {/* unit for the big number (the hour lives in the pill below, so it
+            is not repeated here); day name wins over BEST so the line has a
+            bounded length and can never wrap. */}
+        <p className="whitespace-nowrap pb-1 text-right font-mono text-[9px] tracking-[0.18em]" style={{ color: t.dim }}>
+          {range === "day" ? "STEPS" : day === today ? `${names[day]} · TODAY` : day === bestIdx ? `${names[day]} · BEST` : names[day]}
         </p>
       </div>
       <div className="mt-2 min-h-[150px]">
@@ -567,17 +571,22 @@ function RouteMap({ reduced, t, privateZones }: { reduced: boolean; t: Tokens; p
         <circle cx={ends.ex} cy={ends.ey} r={5} fill={t.red} />
       </g>
       {privateZones && (
-        <text
-          x={ends.sx < 80 ? ends.sx + 10 : ends.sx}
-          y={ends.sy + 20}
-          textAnchor={ends.sx < 80 ? "start" : "middle"}
-          fill={t.dim}
-          fontSize={9}
-          fontFamily="monospace"
-          letterSpacing={2}
-        >
-          HOME ZONE HIDDEN
-        </text>
+        <>
+          {/* zone extent: dashed rings show how much of each end stays home */}
+          <circle cx={ends.sx} cy={ends.sy} r={16} fill="none" stroke={t.dim} strokeWidth={1} strokeDasharray="3 4" opacity={0.8} />
+          <circle cx={ends.ex} cy={ends.ey} r={16} fill="none" stroke={t.dim} strokeWidth={1} strokeDasharray="3 4" opacity={0.8} />
+          <text
+            x={ends.sx < 80 ? ends.sx + 10 : ends.sx}
+            y={ends.sy + 20}
+            textAnchor={ends.sx < 80 ? "start" : "middle"}
+            fill={t.dim}
+            fontSize={9}
+            fontFamily="monospace"
+            letterSpacing={2}
+          >
+            HOME ZONE HIDDEN
+          </text>
+        </>
       )}
       <circle ref={haloRef} r={11} fill="none" stroke={t.red} strokeWidth={1.5} opacity={0.5} />
       <circle ref={runnerRef} r={4.5} fill={t.red} stroke={t.card} strokeWidth={1.5} />
@@ -837,9 +846,9 @@ function DetailScreen({
             whileTap={{ scale: 0.98 }}
             className="flex w-full items-center justify-between rounded-[20px] px-5 py-4 font-mono text-[12px] tracking-[0.18em]"
             style={{ background: t.ink, color: t.ground }}
-            aria-label="View sample run"
+            aria-label="View morning run"
           >
-            <span>SAMPLE RUN · {RUN.dist} KM</span>
+            <span>MORNING RUN · {RUN.dist} KM</span>
             <span aria-hidden>
               <ArrowRight size={16} />
             </span>
@@ -1030,8 +1039,9 @@ function ShareCard({ t, privateZones, canvas }: { t: Tokens; privateZones: boole
       <p className="mt-1 font-mono text-[10px] tracking-[0.24em]" style={{ color: canvas.ink }}>KILOMETRES</p>
       <svg viewBox="0 0 360 250" className="mt-2 h-auto w-full" role="img" aria-label="Run route">
         <path d={ROUTE} fill="none" stroke={canvas.dot} strokeOpacity={0.9} strokeWidth={6} strokeLinecap="round" strokeDasharray="0.1 10" />
-        <circle cx={44} cy={200} r={7} fill={canvas.dot} opacity={privateZones ? 0.2 : 1} />
-        <circle cx={96} cy={200} r={7} fill={t.red} opacity={privateZones ? 0.2 : 1} />
+        {/* hidden means hidden: endpoints are removed from the artifact, not ghosted */}
+        <circle cx={44} cy={200} r={7} fill={canvas.dot} opacity={privateZones ? 0 : 1} />
+        <circle cx={96} cy={200} r={7} fill={t.red} opacity={privateZones ? 0 : 1} />
       </svg>
       <div className="mt-2 flex justify-between font-mono text-[11px]" style={{ color: canvas.ink }}>
         <span>{RUN.time}</span>
