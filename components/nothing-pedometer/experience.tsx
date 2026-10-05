@@ -402,10 +402,7 @@ function ActivityCard({ t, live }: { t: Tokens; live: StepsSnapshot | null }) {
         <p className={SANS_LABEL} style={{ color: t.dim }}>
           Activity
         </p>
-        {/* compact segment: 32px targets paired with 11px type (same tier
-            as SAVE/SHARE) — the pill finally fits its neighbours. Two wide
-            adjacent targets + full keyboard support keep it tappable. */}
-        <div className="flex rounded-full p-[2px]" style={{ background: t.faint }} role="group" aria-label="Chart range">
+        <div className="flex rounded-full p-[3px]" style={{ background: t.faint }} role="group" aria-label="Chart range">
           {(["day", "week"] as const).map((r) => {
             const active = range === r;
             return (
@@ -414,7 +411,7 @@ function ActivityCard({ t, live }: { t: Tokens; live: StepsSnapshot | null }) {
                 type="button"
                 onClick={() => setRange(r)}
                 aria-pressed={active}
-                className="relative min-h-[32px] min-w-[52px] rounded-full px-3 font-mono text-[11px] tracking-[0.16em]"
+                className="relative rounded-full px-3 py-1 font-mono text-[9px] tracking-[0.16em]"
                 style={{ color: active ? t.ground : t.dim }}
               >
                 {active && (

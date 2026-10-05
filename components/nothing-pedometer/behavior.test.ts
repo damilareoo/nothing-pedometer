@@ -279,9 +279,10 @@ describe("reduced motion", () => {
     expect(src).toContain("whitespace-nowrap pb-1 text-right");
   });
 
-  it("keeps the segment compact: 32px targets, full-bleed thumb", () => {
-    expect(src).toContain("min-h-[32px] min-w-[52px]");
+  it("keeps the segment at its original tiny size: py-1, 9px type", () => {
+    expect(src).toContain("px-3 py-1 font-mono text-[9px]");
     expect(src).toContain('layoutId="range-thumb"');
+    expect(src).not.toContain("min-h-[32px]");
   });
 
   it("names the run concept without promising today's data", () => {
