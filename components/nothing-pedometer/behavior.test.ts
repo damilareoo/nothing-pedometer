@@ -75,7 +75,7 @@ describe("reduced motion", () => {
   });
 
   it("derives every number in the prose from the fixtures", () => {
-    for (const token of ["GOAL_PCT", "GOAL_TO_GO", "WEEK_AVG", "WEEK_BEST", "PEAK_HOUR", "PEAK_STEPS", "RUN.dist", "RUN.time", "RUN.kcal", "RUN.pace", "RUN.when"]) {
+    for (const token of ["GOAL_PCT", "GOAL_TO_GO", "WEEK_AVG", "WEEK_BEST", "PEAK_HOUR", "PEAK_STEPS", "STRIDE_M", "RUN.dist", "RUN.time", "RUN.kcal", "RUN.pace", "RUN.when"]) {
       expect(src).toContain(token);
     }
     for (const stale of ["AVG 7,305", "73%</span> OF 10,000", "2,716 TO GO", "Morning run · 06:42{"]) {
@@ -143,6 +143,7 @@ describe("reduced motion", () => {
       expect(icons).toContain(mark);
     }
     expect(icons.match(/<Brand /g)?.length).toBe(4);
+    expect(icons).toContain("r={3.5}");
   });
 
   it("shows the privacy zone extent on the map, not just the erasure", () => {
@@ -226,17 +227,33 @@ describe("reduced motion", () => {
     expect(src).not.toContain("px-0 pb-16 pt-2 sm:px-6");
   });
 
+  it("wears the platforms' real colors — verified hexes, no house tints", () => {
+    for (const real of ['bg: "#000000"', 'bg: "#25D366"', 'bg: "#26A5E4"', "linear-gradient(45deg, #FEDA75"]) {
+      expect(src).toContain(real);
+    }
+    expect(src).not.toContain("#E1306C");
+    expect(src).not.toContain("#229ED9");
+  });
+
+  it("dismisses the sheet with a downward swipe, not just the scrim", () => {
+    expect(src).toContain('drag={reduced ? false : "y"}');
+    expect(src).toContain("dragConstraints={{ top: 0 }}");
+    expect(src).toContain("onDragEnd");
+  });
+
   it("floats the chrome beside the device so it never collides with it", () => {
     expect(src).toContain("calc(50% - 440px)");
     expect(src).toContain("min-h-dvh w-full items-center justify-center");
     expect(src).not.toContain("inset-x-0 top-0 z-40");
   });
 
-  it("frames the concept as a Phone 2a, measured off official renders", () => {
+  it("frames the concept as a Phone 2a, measured off the official render", () => {
     expect(src).toContain("Nothing Phone 2a pedometer concept");
     expect(src).toContain("sm:aspect-[76.32/161.74]");
     expect(src).toContain("sm:w-[min(382px,calc((100dvh-48px)*0.4719),calc(100vw-48px))]");
-    expect(src).toContain("top-[7.5%]");
+    expect(src).toContain("top-[2.8%]");
+    expect(src).toContain("sm:rounded-[42px]");
+    expect(src).toContain("sm:rounded-[27px]");
     expect(src).toContain('"#141416"');
     expect(src).toContain('"#E8E8E6"');
     expect(src).not.toContain("sm:max-h-[calc(100dvh-150px)]");
@@ -245,16 +262,16 @@ describe("reduced motion", () => {
     expect(src.toLowerCase()).not.toContain("iphone");
   });
 
-  it("leaves the phone path untouched: base spacing ships, sm: only dresses desktop", () => {
-    expect(src).toContain("px-6 pt-4 font-mono");
-    expect(src).toContain("sm:pt-[52px]");
+  it("sits the status row on the punch-hole line, identically on phone and preview", () => {
+    expect(src).toContain("px-6 pt-[3%] font-mono");
+    expect(src).not.toContain("sm:pt-[52px]");
+    expect(src).toContain("top-[2.8%]");
     expect(src).toContain("relative h-dvh w-full sm:aspect-");
     expect(src).toContain("whitespace-nowrap font-mono text-[17px]");
   });
 
-  it("clears every in-screen header below the punch-hole on desktop", () => {
-    const heads = src.match(/pt-5 sm:pt-\[42px\]/g) ?? [];
-    expect(heads.length).toBe(3);
+  it("keeps in-screen headers at base padding — the hole needs no clearance", () => {
+    expect(src).not.toContain("sm:pt-[42px]");
   });
 
   it("keeps the readout label to one bounded line, never wrapping", () => {
@@ -262,9 +279,9 @@ describe("reduced motion", () => {
     expect(src).toContain("whitespace-nowrap pb-1 text-right");
   });
 
-  it("keeps the 44px range target with a slim 34px visual pill", () => {
-    expect(src).toContain("min-h-[44px] min-w-[64px]");
-    expect(src).toContain("bottom-[5px] top-[5px]");
+  it("keeps the segment compact: 32px targets, full-bleed thumb", () => {
+    expect(src).toContain("min-h-[32px] min-w-[52px]");
+    expect(src).toContain('layoutId="range-thumb"');
   });
 
   it("names the run concept without promising today's data", () => {

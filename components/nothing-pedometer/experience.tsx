@@ -39,6 +39,9 @@ const GOAL_FMT = GOAL.toLocaleString("en-US");
 const KM = 5.2;
 const KCAL = 312;
 const ACTIVE_MIN = 48;
+/** Average adult stride: the standard pedometer assumption behind every
+    step-to-distance readout. Disclosed here, not hidden in the math. */
+const STRIDE_M = 0.75;
 
 const WEEK = [
   { d: "M", v: 5120 },
@@ -373,23 +376,25 @@ function ActivityCard({ t, live }: { t: Tokens; live: StepsSnapshot | null }) {
         <p className={SANS_LABEL} style={{ color: t.dim }}>
           Activity
         </p>
-        <div className="flex rounded-full p-[3px]" style={{ background: t.faint }} role="group" aria-label="Chart range">
+        {/* compact segment: 32px targets paired with 11px type (same tier
+            as SAVE/SHARE) — the pill finally fits its neighbours. Two wide
+            adjacent targets + full keyboard support keep it tappable. */}
+        <div className="flex rounded-full p-[2px]" style={{ background: t.faint }} role="group" aria-label="Chart range">
           {(["day", "week"] as const).map((r) => {
             const active = range === r;
             return (
-              /* 44px finger target, 34px visual pill — tap ease without the chunk */
               <button
                 key={r}
                 type="button"
                 onClick={() => setRange(r)}
                 aria-pressed={active}
-                className="relative min-h-[44px] min-w-[64px] rounded-full px-4 font-mono text-[10px] tracking-[0.16em]"
+                className="relative min-h-[32px] min-w-[52px] rounded-full px-3 font-mono text-[11px] tracking-[0.16em]"
                 style={{ color: active ? t.ground : t.dim }}
               >
                 {active && (
                   <motion.span
                     layoutId="range-thumb"
-                    className="absolute inset-x-1 bottom-[5px] top-[5px] rounded-full"
+                    className="absolute inset-0 rounded-full"
                     style={{ background: t.dot }}
                     transition={{ duration: DUR.base, ease: EASE_OUT }}
                   />
@@ -598,9 +603,10 @@ function RouteMap({ reduced, t, privateZones }: { reduced: boolean; t: Tokens; p
 
 function StatusBar({ time, t, onWidget }: { time: string; t: Tokens; onWidget: boolean }) {
   return (
-    /* base pt-4 is the phone as-shipped — untouched. sm:pt puts the desktop
-       preview row exactly on the punch-hole line (hole centre ~60px). */
-    <div className="flex items-center justify-between px-6 pt-4 font-mono text-[12px] tracking-[0.02em] sm:pt-[52px]" style={{ color: onWidget ? "#fff" : t.ink }}>
+    /* One line on both platforms: official render centres time and hole on
+       the same row just under the bezel — pt-[3%] of screen width tracks the
+       hole line at every size, phone and preview share it exactly. */
+    <div className="flex items-center justify-between px-6 pt-[3%] font-mono text-[12px] tracking-[0.02em]" style={{ color: onWidget ? "#fff" : t.ink }}>
       <span>{time}</span>
       <span className="flex items-center gap-1.5" aria-label="Signal, wifi, battery">
         <svg width="17" height="11" viewBox="0 0 17 11" aria-hidden>
@@ -795,8 +801,8 @@ function DetailScreen({
       style={{ background: t.ground }}
     >
       <div className="no-scrollbar flex-1 overflow-y-auto pb-9">
-        {/* base pt-5 is the phone — untouched. sm: clears the punch-hole. */}
-        <div className="flex items-center gap-4 px-5 pt-5 sm:pt-[42px]">
+        {/* base pt-5 is the phone — untouched. */}
+        <div className="flex items-center gap-4 px-5 pt-5">
           <button
             type="button"
             onClick={onClose}
@@ -830,7 +836,7 @@ function DetailScreen({
         </Rise>
 
         <Rise index={1} className="grid grid-cols-3 gap-2.5 px-4 pt-2.5">
-          <Stat label="Distance" value={String(KM)} sub="KM" t={t} />
+          <Stat label="Distance" value={live ? (target * STRIDE_M / 1000).toFixed(1) : String(KM)} sub="KM" t={t} />
           <Stat label="Energy" value={String(KCAL)} sub="KCAL" t={t} />
           <Stat label="Active" value={String(ACTIVE_MIN)} sub="MIN" t={t} />
         </Rise>
@@ -877,8 +883,8 @@ function RunScreen({ onBack, onShare, privacy, setPrivacy, t }: { onBack: () => 
       transition={{ duration: reduced ? 0 : DUR.morph, ease: EASE_EMPHASIZED }}
     >
       <div className="no-scrollbar flex-1 overflow-y-auto pb-9">
-        {/* base pt-5 is the phone — untouched. sm: clears the punch-hole. */}
-        <div className="flex items-center justify-between px-5 pt-5 sm:pt-[42px]">
+        {/* base pt-5 is the phone — untouched. */}
+        <div className="flex items-center justify-between px-5 pt-5">
           <button
             type="button"
             onClick={onBack}
@@ -1057,12 +1063,15 @@ function ShareCard({ t, privateZones, canvas }: { t: Tokens; privateZones: boole
 }
 
 function ShareSheet({ t, privacy, onPick, onClose }: { t: Tokens; privacy: boolean; onPick: (p: Exclude<ShareTarget, "sheet">) => void; onClose: () => void }) {
+  /* Target tiles wear the platforms' real colors (Simple Icons hexes —
+     no house tints. Instagram's real color is its brand gradient). */
   const targets = [
     { id: "x", label: "X", bg: "#000000", fg: "#FFFFFF", Icon: XIcon },
-    { id: "instagram", label: "Instagram", bg: "#E1306C", fg: "#FFFFFF", Icon: InstagramIcon },
+    { id: "instagram", label: "Instagram", bg: "linear-gradient(45deg, #FEDA75 0%, #FA7E1E 25%, #D62976 50%, #962FBF 75%, #4F5BD5 100%)", fg: "#FFFFFF", Icon: InstagramIcon },
     { id: "whatsapp", label: "WhatsApp", bg: "#25D366", fg: "#FFFFFF", Icon: WhatsAppIcon },
-    { id: "telegram", label: "Telegram", bg: "#229ED9", fg: "#FFFFFF", Icon: TelegramIcon },
+    { id: "telegram", label: "Telegram", bg: "#26A5E4", fg: "#FFFFFF", Icon: TelegramIcon },
   ] as const;
+  const reduced = useReducedMotion();
   return (
     <>
       <motion.button
@@ -1077,7 +1086,7 @@ function ShareSheet({ t, privacy, onPick, onClose }: { t: Tokens; privacy: boole
       />
       <motion.div
         className="absolute inset-x-0 bottom-0 rounded-t-[28px] px-5 pb-7 pt-3"
-        style={{ background: t.card }}
+        style={{ background: t.card, touchAction: "pan-x" }}
         role="dialog"
         aria-modal="true"
         aria-label="Share run"
@@ -1085,6 +1094,13 @@ function ShareSheet({ t, privacy, onPick, onClose }: { t: Tokens; privacy: boole
         animate={{ y: 0 }}
         exit={{ y: "100%", transition: { duration: DUR.fast, ease: EASE_OUT } }}
         transition={{ duration: DUR.morph, ease: EASE_EMPHASIZED }}
+        drag={reduced ? false : "y"}
+        dragConstraints={{ top: 0 }}
+        dragElastic={0.12}
+        dragMomentum={false}
+        onDragEnd={(_, info) => {
+          if (info.offset.y > 110 || info.velocity.y > 600) onClose();
+        }}
       >
         <div className="mx-auto h-[4px] w-[40px] rounded-full" style={{ background: t.faint }} aria-hidden />
         <p className="pt-3 text-[17px] font-normal" style={{ color: t.ink }}>
@@ -1297,8 +1313,8 @@ function SharePreview({ platform, privacy, t, onBack }: { platform: Exclude<Shar
       exit={{ x: "100%", transition: { duration: DUR.fast, ease: EASE_OUT } }}
       transition={{ duration: reduced ? 0 : DUR.morph, ease: EASE_EMPHASIZED }}
     >
-      {/* base pt-5 is the phone — untouched. sm: clears the punch-hole. */}
-      <div className="flex items-center justify-between px-5 pt-5 sm:pt-[42px]">
+      {/* base pt-5 is the phone — untouched. */}
+      <div className="flex items-center justify-between px-5 pt-5">
         <button
           type="button"
           onClick={onBack}
@@ -1500,21 +1516,18 @@ export function PedometerExperience() {
           aria-hidden
           style={{ background: "radial-gradient(closest-side, rgba(255,255,255,0.07), transparent 70%)" }}
         />
-        {/* Phone (2a) in white, measured off Nothing's official front renders:
-            76.32 × 161.74mm footprint (aspect-locked), uniform slim bezels
-            (no chin — renders confirm symmetry), centred hole at ~7.5% of
-            height, two separate black volume keys left + black power right
-            (white unit ships contrasting keys), warm-white body. True size
-            default: 76.32mm at 127 CSS PPI (MacBook-class retina) = 382px;
-            shorter viewports shrink the whole device instead of cramping it.
-            Budget is air only (48px) because the chrome floats.
-            Desktop preview only — the phone stays full-bleed. */}
+        {/* Phone (2a) in white, measured off Nothing's official front render:
+            76.32 × 161.74mm footprint (aspect-locked), uniform slim bezels,
+            hole centre 2.8% of the screen with the status row on its line,
+            two separate black volume keys left + black power right, body
+            corners ~11% of width. True size default (382px); shorter
+            viewports shrink the whole device. Desktop preview only. */}
         <div className="relative h-dvh w-full sm:aspect-[76.32/161.74] sm:h-auto sm:w-[min(382px,calc((100dvh-48px)*0.4719),calc(100vw-48px))]">
           <div className="absolute -left-[4px] top-[30%] hidden h-[7%] w-[4px] rounded-l-md sm:block" style={{ background: "#141416", boxShadow: "inset 0 0 1px rgba(255,255,255,0.25)" }} aria-hidden />
           <div className="absolute -left-[4px] top-[39%] hidden h-[7%] w-[4px] rounded-l-md sm:block" style={{ background: "#141416", boxShadow: "inset 0 0 1px rgba(255,255,255,0.25)" }} aria-hidden />
           <div className="absolute -right-[4px] top-[34%] hidden h-[8%] w-[4px] rounded-r-md sm:block" style={{ background: "#141416", boxShadow: "inset 0 0 1px rgba(255,255,255,0.25)" }} aria-hidden />
           <div
-            className="relative h-full w-full overflow-hidden sm:rounded-[54px] sm:p-[3px] sm:ring-1 sm:ring-black/20"
+            className="relative h-full w-full overflow-hidden sm:rounded-[42px] sm:p-[3px] sm:ring-1 sm:ring-black/20"
             style={{
               background: "#E8E8E6",
               boxShadow:
@@ -1523,13 +1536,13 @@ export function PedometerExperience() {
             role="region"
             aria-label="Nothing Phone 2a pedometer concept"
           >
-            <div className="relative h-full w-full overflow-hidden bg-black sm:rounded-[51px] sm:p-[10px]">
-              <div className="relative h-full w-full overflow-hidden sm:rounded-[41px]">
-                {/* punch-hole camera: preview-only, centre ~7.5% of body height
-                    per official renders — the status row sits on the same line */}
-                <div className="pointer-events-none absolute left-1/2 top-[7.5%] z-30 hidden -translate-x-1/2 -translate-y-1/2 sm:block" aria-hidden>
-                  <div className="flex h-[16px] w-[16px] items-center justify-center rounded-full bg-black" style={{ boxShadow: "0 0 0 2px rgba(0,0,0,0.9), inset 0 0 2px rgba(80,120,200,0.5)" }}>
-                    <div className="h-[6px] w-[6px] rounded-full" style={{ background: "radial-gradient(circle at 35% 35%, #24365e 0%, #050507 70%)" }} />
+            <div className="relative h-full w-full overflow-hidden bg-black sm:rounded-[39px] sm:p-[12px]">
+              <div className="relative h-full w-full overflow-hidden sm:rounded-[27px]">
+                {/* punch-hole camera: preview-only. Official render: centre
+                    2.8% of the screen, Ø ~2.7% of width, status row aligned. */}
+                <div className="pointer-events-none absolute left-1/2 top-[2.8%] z-30 hidden -translate-x-1/2 -translate-y-1/2 sm:block" aria-hidden>
+                  <div className="flex h-[12px] w-[12px] items-center justify-center rounded-full bg-black" style={{ boxShadow: "0 0 0 2px rgba(0,0,0,0.9), inset 0 0 2px rgba(80,120,200,0.5)" }}>
+                    <div className="h-[5px] w-[5px] rounded-full" style={{ background: "radial-gradient(circle at 35% 35%, #24365e 0%, #050507 70%)" }} />
                   </div>
                 </div>
                 {/* glass: barely-there diagonal sheen for the photoreal read, never over content */}
