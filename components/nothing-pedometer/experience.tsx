@@ -446,7 +446,7 @@ function Stat({ label, value, sub, t }: { label: string; value: string; sub?: st
       <p className={SANS_LABEL} style={{ color: t.dim }}>
         {label}
       </p>
-      <p className="mt-1 font-mono text-[17px] tracking-tight" style={{ color: t.ink }}>
+      <p className="mt-1 whitespace-nowrap font-mono text-[17px] tracking-tight" style={{ color: t.ink }}>
         {value} {sub ? <span className="text-[10px]" style={{ color: t.dim }}>{sub}</span> : null}
       </p>
     </div>
@@ -584,9 +584,9 @@ function RouteMap({ reduced, t, privateZones }: { reduced: boolean; t: Tokens; p
 
 function StatusBar({ time, t, onWidget }: { time: string; t: Tokens; onWidget: boolean }) {
   return (
-    /* base pt-4 is the phone as-shipped — untouched. sm:pt drops the desktop
-       preview row onto the punch-hole line, per official renders. */
-    <div className="flex items-center justify-between px-6 pt-4 font-mono text-[12px] tracking-[0.02em] sm:pt-[40px]" style={{ color: onWidget ? "#fff" : t.ink }}>
+    /* base pt-4 is the phone as-shipped — untouched. sm:pt puts the desktop
+       preview row exactly on the punch-hole line (hole centre ~60px). */
+    <div className="flex items-center justify-between px-6 pt-4 font-mono text-[12px] tracking-[0.02em] sm:pt-[52px]" style={{ color: onWidget ? "#fff" : t.ink }}>
       <span>{time}</span>
       <span className="flex items-center gap-1.5" aria-label="Signal, wifi, battery">
         <svg width="17" height="11" viewBox="0 0 17 11" aria-hidden>
@@ -781,7 +781,8 @@ function DetailScreen({
       style={{ background: t.ground }}
     >
       <div className="no-scrollbar flex-1 overflow-y-auto pb-9">
-        <div className="flex items-center gap-4 px-5 pt-5">
+        {/* base pt-5 is the phone — untouched. sm: clears the punch-hole. */}
+        <div className="flex items-center gap-4 px-5 pt-5 sm:pt-[42px]">
           <button
             type="button"
             onClick={onClose}
@@ -806,7 +807,7 @@ function DetailScreen({
               <DottedLine frac={target / goal} total={32} t={t} />
             </div>
             <p className="mt-2.5 font-mono text-[10px] tracking-[0.16em]" style={{ color: t.dim }}>
-              <span style={{ color: t.ink }}>{pct}%</span> OF {goalFmt} GOAL · {toGo} TO GO
+              <span style={{ color: t.ink }}>{pct}%</span> OF {goalFmt} · {toGo} TO GO
             </p>
             <p className="mt-1.5 font-mono text-[9px] tracking-[0.16em]" style={{ color: t.dim }}>
               COUNTED ON-DEVICE · {synced ? `SYNCED ${synced}` : "SYNCED JUST NOW"}
@@ -862,7 +863,8 @@ function RunScreen({ onBack, onShare, privacy, setPrivacy, t }: { onBack: () => 
       transition={{ duration: reduced ? 0 : DUR.morph, ease: EASE_EMPHASIZED }}
     >
       <div className="no-scrollbar flex-1 overflow-y-auto pb-9">
-        <div className="flex items-center justify-between px-5 pt-5">
+        {/* base pt-5 is the phone — untouched. sm: clears the punch-hole. */}
+        <div className="flex items-center justify-between px-5 pt-5 sm:pt-[42px]">
           <button
             type="button"
             onClick={onBack}
@@ -1280,7 +1282,8 @@ function SharePreview({ platform, privacy, t, onBack }: { platform: Exclude<Shar
       exit={{ x: "100%", transition: { duration: DUR.fast, ease: EASE_OUT } }}
       transition={{ duration: reduced ? 0 : DUR.morph, ease: EASE_EMPHASIZED }}
     >
-      <div className="flex items-center justify-between px-5 pt-5">
+      {/* base pt-5 is the phone — untouched. sm: clears the punch-hole. */}
+      <div className="flex items-center justify-between px-5 pt-5 sm:pt-[42px]">
         <button
           type="button"
           onClick={onBack}
@@ -1424,46 +1427,52 @@ export function PedometerExperience() {
 
   return (
     <main className="relative flex min-h-dvh flex-col items-center overflow-x-clip" style={{ background: t.ground, color: t.ink }}>
-      {/* Floating chrome: overlays the studio, zero flow height, so the full
-          viewport belongs to the device — that is what lets true size fit.
-          Floor-lit (not theme-lit): the floor is always dark. Mobile has no
-          chrome at all and stays full-bleed. */}
-      <div className="pointer-events-none absolute inset-x-0 top-0 z-40 hidden flex-col items-center gap-2 px-6 pt-5 sm:flex">
-        <div className="pointer-events-auto flex items-center gap-2" role="group" aria-label="Theme">
-          {(["dark", "light"] as const).map((m) => (
-            <button
-              key={m}
-              type="button"
-              onClick={() => setTheme(m)}
-              aria-pressed={theme === m}
-              className="rounded-full border px-4 py-1.5 font-mono text-[10px] uppercase tracking-[0.22em]"
-              style={{
-                borderColor: "rgba(255,255,255,0.2)",
-                background: theme === m ? "#FFFFFF" : "transparent",
-                color: theme === m ? "#0A0A0A" : "rgba(255,255,255,0.6)",
-              }}
-            >
-              {m}
-            </button>
-          ))}
-          <span className="pl-2 font-mono text-[10px] uppercase tracking-[0.22em]" style={{ color: "rgba(255,255,255,0.55)" }}>
+      {/* Floating chrome: docked left of the device (never above it, so it
+          can never collide with the frame, the hole, or in-screen headers).
+          Zero flow height — the full viewport belongs to the device. Only on
+          wide screens (lg); smaller viewports and the phone get no chrome.
+          Floor-lit (not theme-lit): the floor is always dark. */}
+      <div
+        className="pointer-events-none absolute z-40 hidden lg:block"
+        style={{ left: "max(24px, calc(50% - 440px))", top: "50%", transform: "translateY(-50%)" }}
+      >
+        <div className="pointer-events-auto flex max-w-[210px] flex-col items-start gap-3">
+          <div className="flex items-center gap-2" role="group" aria-label="Theme">
+            {(["dark", "light"] as const).map((m) => (
+              <button
+                key={m}
+                type="button"
+                onClick={() => setTheme(m)}
+                aria-pressed={theme === m}
+                className="rounded-full border px-4 py-1.5 font-mono text-[10px] uppercase tracking-[0.22em]"
+                style={{
+                  borderColor: "rgba(255,255,255,0.2)",
+                  background: theme === m ? "#FFFFFF" : "transparent",
+                  color: theme === m ? "#0A0A0A" : "rgba(255,255,255,0.6)",
+                }}
+              >
+                {m}
+              </button>
+            ))}
+          </div>
+          <p className="font-mono text-[10px] uppercase leading-relaxed tracking-[0.22em]" style={{ color: "rgba(255,255,255,0.55)" }}>
             OS 4.1 tokens
-          </span>
-        </div>
-        <div className="flex h-6 items-start justify-center overflow-hidden">
-          <AnimatePresence mode="wait" initial={false}>
-            <motion.p
-              key={stage}
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -6 }}
-              transition={{ duration: DUR.micro, ease: EASE_OUT }}
-              className="text-center font-mono text-[10px] uppercase tracking-[0.24em]"
-              style={{ color: "rgba(255,255,255,0.55)" }}
-            >
-              {STAGE_LINE[stage]}
-            </motion.p>
-          </AnimatePresence>
+          </p>
+          <div className="flex min-h-6 items-start justify-start overflow-hidden">
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.p
+                key={stage}
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
+                transition={{ duration: DUR.micro, ease: EASE_OUT }}
+                className="font-mono text-[10px] uppercase leading-relaxed tracking-[0.24em]"
+                style={{ color: "rgba(255,255,255,0.55)" }}
+              >
+                {STAGE_LINE[stage]}
+              </motion.p>
+            </AnimatePresence>
+          </div>
         </div>
       </div>
       {/* web stage: full viewport height, device centred. The chrome floats,

@@ -215,9 +215,10 @@ describe("reduced motion", () => {
     expect(src).not.toContain("px-0 pb-16 pt-2 sm:px-6");
   });
 
-  it("floats the chrome so the full viewport belongs to the device", () => {
-    expect(src).toContain("inset-x-0 top-0 z-40");
+  it("floats the chrome beside the device so it never collides with it", () => {
+    expect(src).toContain("calc(50% - 440px)");
     expect(src).toContain("min-h-dvh w-full items-center justify-center");
+    expect(src).not.toContain("inset-x-0 top-0 z-40");
   });
 
   it("frames the concept as a Phone 2a, measured off official renders", () => {
@@ -235,7 +236,13 @@ describe("reduced motion", () => {
 
   it("leaves the phone path untouched: base spacing ships, sm: only dresses desktop", () => {
     expect(src).toContain("px-6 pt-4 font-mono");
-    expect(src).toContain("sm:pt-[40px]");
+    expect(src).toContain("sm:pt-[52px]");
     expect(src).toContain("relative h-dvh w-full sm:aspect-");
+    expect(src).toContain("whitespace-nowrap font-mono text-[17px]");
+  });
+
+  it("clears every in-screen header below the punch-hole on desktop", () => {
+    const heads = src.match(/pt-5 sm:pt-\[42px\]/g) ?? [];
+    expect(heads.length).toBe(3);
   });
 });
