@@ -1421,8 +1421,8 @@ export function PedometerExperience() {
   }, []);
 
   return (
-    <main className="flex h-dvh flex-col items-center overflow-hidden" style={{ background: t.ground, color: t.ink }}>
-      <div className="hidden items-center gap-2 pt-6 sm:flex" role="group" aria-label="Theme">
+    <main className="flex min-h-dvh flex-col items-center overflow-x-clip" style={{ background: t.ground, color: t.ink }}>
+      <div className="hidden items-center gap-2 pt-10 sm:flex" role="group" aria-label="Theme">
         {(["dark", "light"] as const).map((m) => (
           <button
             key={m}
@@ -1458,12 +1458,19 @@ export function PedometerExperience() {
           </motion.p>
         </AnimatePresence>
       </div>
-      <div className="flex min-h-0 w-full flex-1 items-center justify-center sm:py-4">
+      {/* web stage: generous air on all sides, studio floor glow behind the
+          device. Mobile stays full-bleed (the real 2a); desktop breathes. */}
+      <div className="relative flex w-full flex-1 items-center justify-center px-0 pb-16 pt-2 sm:px-6 sm:pb-20 sm:pt-8">
+        <div
+          className="pointer-events-none absolute left-1/2 top-1/2 hidden h-[720px] w-[720px] -translate-x-1/2 -translate-y-1/2 sm:block"
+          aria-hidden
+          style={{ background: "radial-gradient(closest-side, rgba(255,255,255,0.07), transparent 70%)" }}
+        />
         {/* Phone (2a) in white, true footprint 76.32 × 161.74mm. Width is the
             single driver — min(412px, viewport-height fit, viewport-width fit)
             — height always derives from aspect, so short viewports shrink the
             whole device instead of cramping it. Desktop preview only. */}
-        <div className="relative h-full w-full sm:aspect-[76.32/161.74] sm:h-auto sm:w-[min(412px,calc((100dvh-150px)*0.4719),calc(100vw-32px))]">
+        <div className="relative h-dvh w-full sm:aspect-[76.32/161.74] sm:h-auto sm:w-[min(412px,calc((100dvh-260px)*0.4719),calc(100vw-64px))]">
           <div className="absolute -left-[4px] top-[17%] hidden h-[6%] w-[4px] rounded-l-md sm:block" style={{ background: "#D8D8D6", boxShadow: "inset 0 0 1px rgba(0,0,0,0.4)" }} aria-hidden />
           <div className="absolute -left-[4px] top-[24%] hidden h-[6%] w-[4px] rounded-l-md sm:block" style={{ background: "#D8D8D6", boxShadow: "inset 0 0 1px rgba(0,0,0,0.4)" }} aria-hidden />
           <div className="absolute -right-[4px] top-[21%] hidden h-[8%] w-[4px] rounded-r-md sm:block" style={{ background: "#D8D8D6", boxShadow: "inset 0 0 1px rgba(0,0,0,0.4)" }} aria-hidden />
