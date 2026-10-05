@@ -66,6 +66,32 @@ const PEAK_STEPS = Math.max(...HOURLY).toLocaleString("en-US");
 const RUN = { dist: "5.2", time: "32:14", pace: "6'12''", kcal: "268", when: "06:42" };
 /** The run is a curated sample until the feed serves ExerciseSessions. */
 const RUN_SAMPLE = true;
+/** The curated workout's own anchors: 32:14 over 5.2 km burns 268 kcal. */
+const RUN_BASE_SEC = 32 * 60 + 14;
+const RUN_BASE_DIST = 5.2;
+const RUN_BASE_KCAL = 268;
+
+function fmtDuration(totalSec: number): string {
+  const m = Math.floor(totalSec / 60);
+  return `${m}:${String(Math.round(totalSec % 60)).padStart(2, "0")}`;
+}
+
+/**
+ * The day's distance is live (steps × stride); the workout scales with it
+ * so pace, time, and energy always reconcile with the daily read. Offline
+ * the curated 5.2 km set returns exactly. Time/kcal stay sample-framed
+ * (badged wherever shown) until ExerciseSessions land.
+ */
+function runFigures(live: StepsSnapshot | null): { dist: string; time: string; kcal: string } {
+  if (!live) return { dist: RUN.dist, time: RUN.time, kcal: RUN.kcal };
+  const dist = live.today * STRIDE_M / 1000;
+  const f = dist / RUN_BASE_DIST;
+  return {
+    dist: dist.toFixed(1),
+    time: fmtDuration(RUN_BASE_SEC * f),
+    kcal: String(Math.round(RUN_BASE_KCAL * f)),
+  };
+}
 
 const SPLITS = [
   { km: "01", pace: "6'05''", hr: "146" },
@@ -468,7 +494,7 @@ function Stat({ label, value, sub, t }: { label: string; value: string; sub?: st
 }
 
 /** Strava route redrawn as a Nothing dot-matrix trace with a live runner. */
-function RouteMap({ reduced, t, privateZones }: { reduced: boolean; t: Tokens; privateZones: boolean }) {
+function RouteMap({ reduced, t, privateZones, dist }: { reduced: boolean; t: Tokens; privateZones: boolean; dist: string }) {
   const pathRef = useRef<SVGPathElement>(null);
   const travelledRef = useRef<SVGPathElement>(null);
   const zoneARef = useRef<SVGPathElement>(null);
@@ -547,7 +573,7 @@ function RouteMap({ reduced, t, privateZones }: { reduced: boolean; t: Tokens; p
   const halo = { paintOrder: "stroke" as const, stroke: t.card, strokeWidth: 5 };
 
   return (
-    <svg viewBox="0 0 360 250" className="h-auto w-full" role="img" aria-label={`${RUN.dist} kilometre run route as a dotted trace`}>
+    <svg viewBox="0 0 360 250" className="h-auto w-full" role="img" aria-label={`${dist} kilometre run route as a dotted trace`}>
       {Array.from({ length: 12 }).map((_, r) =>
         Array.from({ length: 18 }).map((_, c) => (
           <circle key={`${r}-${c}`} cx={10 + c * 20} cy={8 + r * 21} r={0.8} fill={t.faint} />
@@ -786,6 +812,7 @@ function DetailScreen({
 }) {
   const target = live?.today ?? STEPS;
   const goal = live?.goal ?? GOAL;
+  const run = runFigures(live);
   const steps = useCountUp(target, visits);
   const pct = Math.max(0, Math.round((target / goal) * 100));
   const toGo = Math.max(0, goal - target).toLocaleString("en-US");
@@ -854,7 +881,7 @@ function DetailScreen({
             style={{ background: t.ink, color: t.ground }}
             aria-label="View morning run"
           >
-            <span>MORNING RUN · {RUN.dist} KM</span>
+            <span>MORNING RUN · {run.dist} KM</span>
             <span aria-hidden>
               <ArrowRight size={16} />
             </span>
@@ -870,9 +897,10 @@ function DetailScreen({
 
 /* ---------------------------------- run ------------------------------------ */
 
-function RunScreen({ onBack, onShare, privacy, setPrivacy, t }: { onBack: () => void; onShare: () => void; privacy: boolean; setPrivacy: (v: boolean) => void; t: Tokens }) {
+function RunScreen({ onBack, onShare, privacy, setPrivacy, t, live }: { onBack: () => void; onShare: () => void; privacy: boolean; setPrivacy: (v: boolean) => void; t: Tokens; live: StepsSnapshot | null }) {
   const reduced = useReducedMotion();
   const max = Math.max(...ELEV);
+  const run = runFigures(live);
   return (
     <motion.div
       className="absolute inset-0 flex flex-col"
@@ -911,16 +939,16 @@ function RunScreen({ onBack, onShare, privacy, setPrivacy, t }: { onBack: () => 
           Morning run
         </h1>
         <p className={`${MICRO} px-5 pt-2`} style={{ color: t.dim }}>
-          {RUN.when} · {RUN.dist} kilometres{RUN_SAMPLE ? " · sample" : ""}
+          {RUN.when} · {run.dist} kilometres{RUN_SAMPLE ? " · sample" : ""}
         </p>
 
         <div className="px-5 pt-4">
-          <Matrix t={t} text={RUN.dist} dot={2.6} pitch={6.5} label={`${RUN.dist} kilometres`} />
+          <Matrix t={t} text={run.dist} dot={2.6} pitch={6.5} label={`${run.dist} kilometres`} />
         </div>
 
         <Rise index={0} className="px-4 pt-3">
           <div className="overflow-hidden rounded-[20px]" style={{ background: t.card, border: `1px solid ${t.edge}`, boxShadow: t.pop }}>
-            <RouteMap reduced={reduced} t={t} privateZones={privacy} />
+            <RouteMap reduced={reduced} t={t} privateZones={privacy} dist={run.dist} />
             <div className="flex items-center justify-between border-t px-4 py-2.5 font-mono text-[9px] tracking-[0.18em]" style={{ borderColor: t.faint, color: t.dim }}>
               <span>TRACE</span>
               <span>
@@ -966,9 +994,9 @@ function RunScreen({ onBack, onShare, privacy, setPrivacy, t }: { onBack: () => 
         </Rise>
 
         <Rise index={2} className="grid grid-cols-3 gap-2.5 px-4 pt-2.5">
-          <Stat label="Time" value={RUN.time} t={t} />
+          <Stat label="Time" value={run.time} t={t} />
           <Stat label="Pace" value={RUN.pace} sub="/KM" t={t} />
-          <Stat label="Energy" value={RUN.kcal} sub="KCAL" t={t} />
+          <Stat label="Energy" value={run.kcal} sub="KCAL" t={t} />
         </Rise>
 
         <Rise index={3} className="px-4 pt-2.5">
@@ -1019,7 +1047,7 @@ function RunScreen({ onBack, onShare, privacy, setPrivacy, t }: { onBack: () => 
 type ShareTarget = "sheet" | "x" | "instagram" | "whatsapp" | "telegram";
 
 /** The artifact: what actually travels when a run is shared. Canvas-styled. */
-function ShareCard({ t, privateZones, canvas }: { t: Tokens; privateZones: boolean; canvas: ShareCanvas }) {
+function ShareCard({ t, privateZones, canvas, run }: { t: Tokens; privateZones: boolean; canvas: ShareCanvas; run: { dist: string; time: string; kcal: string } }) {
   return (
     <div className="relative overflow-hidden rounded-[18px] p-4" style={{ background: canvas.bg, boxShadow: t.pop }}>
       {canvas.image && (
@@ -1040,7 +1068,7 @@ function ShareCard({ t, privateZones, canvas }: { t: Tokens; privateZones: boole
         )}
       </div>
       <div className="mt-1.5">
-        <DotText text={RUN.dist} dot={3.4 * t.dotScale} pitch={10.5} color={canvas.dot} dimOpacity={canvas.image ? 0 : t.unlit} label={`${RUN.dist} kilometres`} />
+        <DotText text={run.dist} dot={3.4 * t.dotScale} pitch={10.5} color={canvas.dot} dimOpacity={canvas.image ? 0 : t.unlit} label={`${run.dist} kilometres`} />
       </div>
       <p className="mt-1 font-mono text-[10px] tracking-[0.24em]" style={{ color: canvas.ink }}>KILOMETRES</p>
       <svg viewBox="0 0 360 250" className="mt-2 h-auto w-full" role="img" aria-label="Run route">
@@ -1050,9 +1078,9 @@ function ShareCard({ t, privateZones, canvas }: { t: Tokens; privateZones: boole
         <circle cx={96} cy={200} r={7} fill={t.red} opacity={privateZones ? 0 : 1} />
       </svg>
       <div className="mt-2 flex justify-between font-mono text-[11px]" style={{ color: canvas.ink }}>
-        <span>{RUN.time}</span>
+        <span>{run.time}</span>
         <span>{RUN.pace}/KM</span>
-        <span>{RUN.kcal} KCAL</span>
+        <span>{run.kcal} KCAL</span>
       </div>
       <p className="mt-2.5 font-mono text-[8px] uppercase tracking-[0.26em]" style={{ color: canvas.dim }}>
         Nothing · Pedometer
@@ -1062,7 +1090,8 @@ function ShareCard({ t, privateZones, canvas }: { t: Tokens; privateZones: boole
   );
 }
 
-function ShareSheet({ t, privacy, onPick, onClose }: { t: Tokens; privacy: boolean; onPick: (p: Exclude<ShareTarget, "sheet">) => void; onClose: () => void }) {
+function ShareSheet({ t, privacy, onPick, onClose, live }: { t: Tokens; privacy: boolean; onPick: (p: Exclude<ShareTarget, "sheet">) => void; onClose: () => void; live: StepsSnapshot | null }) {
+  const run = runFigures(live);
   /* Target tiles wear the platforms' real colors (Simple Icons hexes —
      no house tints. Instagram's real color is its brand gradient). */
   const targets = [
@@ -1111,7 +1140,7 @@ function ShareSheet({ t, privacy, onPick, onClose }: { t: Tokens; privacy: boole
             <span className="font-mono text-[10px]">5K</span>
           </span>
           <p className="truncate text-[13px]" style={{ color: t.ink }}>
-            Morning run · {RUN.dist} km in {RUN.time}{privacy ? " · home hidden" : ""}{RUN_SAMPLE ? " · sample" : ""}
+            Morning run · {run.dist} km in {run.time}{privacy ? " · home hidden" : ""}{RUN_SAMPLE ? " · sample" : ""}
           </p>
         </div>
         <div className="mt-3 border-t pt-3" style={{ borderColor: t.faint }}>
@@ -1134,7 +1163,7 @@ function ShareSheet({ t, privacy, onPick, onClose }: { t: Tokens; privacy: boole
   );
 }
 
-function XPost({ t, privacy, canvas }: { t: Tokens; privacy: boolean; canvas: ShareCanvas }) {
+function XPost({ t, privacy, canvas, run }: { t: Tokens; privacy: boolean; canvas: ShareCanvas; run: { dist: string; time: string; kcal: string } }) {
   return (
     <div className="rounded-[20px] border border-white/10 bg-black p-4">
       <div className="flex items-center gap-2.5">
@@ -1149,7 +1178,7 @@ function XPost({ t, privacy, canvas }: { t: Tokens; privacy: boolean; canvas: Sh
         </div>
       </div>
       <div className="pt-2.5">
-        <ShareCard t={t} canvas={canvas} privateZones={privacy} />
+        <ShareCard t={t} canvas={canvas} privateZones={privacy} run={run} />
       </div>
       <p className="pt-3 font-mono text-[10px]" style={{ color: "rgba(255,255,255,0.5)" }}>
         Replies and reposts appear after posting
@@ -1158,18 +1187,18 @@ function XPost({ t, privacy, canvas }: { t: Tokens; privacy: boolean; canvas: Sh
   );
 }
 
-function StoryPreview({ t, privacy, canvas }: { t: Tokens; privacy: boolean; canvas: ShareCanvas }) {
+function StoryPreview({ t, privacy, canvas, run }: { t: Tokens; privacy: boolean; canvas: ShareCanvas; run: { dist: string; time: string; kcal: string } }) {
   return (
     <div className="overflow-hidden rounded-[20px]" style={{ background: "linear-gradient(170deg, #1A1C26 0%, #3A2E38 55%, #101014 100%)", aspectRatio: "9/16" }}>
       <div className="mx-auto mt-2 h-[3px] w-16 rounded-full bg-white/40" />
       <div className="px-4 pt-6">
-        <ShareCard t={t} canvas={canvas} privateZones={privacy} />
+        <ShareCard t={t} canvas={canvas} privateZones={privacy} run={run} />
       </div>
     </div>
   );
 }
 
-function WAPreview({ t, privacy, canvas }: { t: Tokens; privacy: boolean; canvas: ShareCanvas }) {
+function WAPreview({ t, privacy, canvas, run }: { t: Tokens; privacy: boolean; canvas: ShareCanvas; run: { dist: string; time: string; kcal: string } }) {
   return (
     <div className="rounded-[20px] p-4" style={{ background: "#0B141A" }}>
       <p className="text-center font-mono text-[9px] tracking-[0.18em]" style={{ color: "rgba(255,255,255,0.45)" }}>
@@ -1177,7 +1206,7 @@ function WAPreview({ t, privacy, canvas }: { t: Tokens; privacy: boolean; canvas
       </p>
       <div className="ml-auto mt-2 w-[94%] rounded-[14px] rounded-tr-[4px] p-2" style={{ background: "#005C4B" }}>
         <div>
-          <ShareCard t={t} canvas={canvas} privateZones={privacy} />
+          <ShareCard t={t} canvas={canvas} privateZones={privacy} run={run} />
         </div>
         <p className="px-1 text-right font-mono text-[9px]" style={{ color: "rgba(255,255,255,0.7)" }}>
           {nowHM()} ✓✓
@@ -1187,7 +1216,7 @@ function WAPreview({ t, privacy, canvas }: { t: Tokens; privacy: boolean; canvas
   );
 }
 
-function TelegramPreview({ t, privacy, canvas }: { t: Tokens; privacy: boolean; canvas: ShareCanvas }) {
+function TelegramPreview({ t, privacy, canvas, run }: { t: Tokens; privacy: boolean; canvas: ShareCanvas; run: { dist: string; time: string; kcal: string } }) {
   return (
     <div className="rounded-[20px] p-4" style={{ background: "#0E1621" }}>
       <p className="text-center font-mono text-[9px] tracking-[0.18em]" style={{ color: "rgba(255,255,255,0.45)" }}>
@@ -1195,7 +1224,7 @@ function TelegramPreview({ t, privacy, canvas }: { t: Tokens; privacy: boolean; 
       </p>
       <div className="ml-auto mt-2 w-[94%] rounded-[14px] rounded-tr-[4px] p-2" style={{ background: "#2AABEE" }}>
         <div>
-          <ShareCard t={t} canvas={canvas} privateZones={privacy} />
+          <ShareCard t={t} canvas={canvas} privateZones={privacy} run={run} />
         </div>
         <p className="px-1 text-right font-mono text-[9px]" style={{ color: "rgba(255,255,255,0.8)" }}>
           {nowHM()} ✓✓
@@ -1205,8 +1234,9 @@ function TelegramPreview({ t, privacy, canvas }: { t: Tokens; privacy: boolean; 
   );
 }
 
-function SharePreview({ platform, privacy, t, onBack }: { platform: Exclude<ShareTarget, "sheet">; privacy: boolean; onBack: () => void; t: Tokens }) {
+function SharePreview({ platform, privacy, t, onBack, live }: { platform: Exclude<ShareTarget, "sheet">; privacy: boolean; onBack: () => void; t: Tokens; live: StepsSnapshot | null }) {
   const reduced = useReducedMotion();
+  const run = runFigures(live);
   const [shared, setShared] = useState(false);
   const [unavailable, setUnavailable] = useState(false);
   useEffect(() => {
@@ -1248,10 +1278,10 @@ function SharePreview({ platform, privacy, t, onBack }: { platform: Exclude<Shar
       });
     }
     const svg = sharePosterSVG({
-      dist: RUN.dist,
-      time: RUN.time,
+      dist: run.dist,
+      time: run.time,
       pace: RUN.pace,
-      kcal: RUN.kcal,
+      kcal: run.kcal,
       when: RUN.when,
       route: ROUTE,
       privacy,
@@ -1400,10 +1430,10 @@ function SharePreview({ platform, privacy, t, onBack }: { platform: Exclude<Shar
           </div>
         </div>
         <input id="photo-upload" ref={fileRef} type="file" accept="image/*" className="sr-only" onChange={onPhotoFile} aria-label="Upload a photo background" />
-        {platform === "x" && <XPost t={t} privacy={privacy} canvas={canvas} />}
-        {platform === "instagram" && <StoryPreview t={t} privacy={privacy} canvas={canvas} />}
-        {platform === "whatsapp" && <WAPreview t={t} privacy={privacy} canvas={canvas} />}
-        {platform === "telegram" && <TelegramPreview t={t} privacy={privacy} canvas={canvas} />}
+        {platform === "x" && <XPost t={t} privacy={privacy} canvas={canvas} run={run} />}
+        {platform === "instagram" && <StoryPreview t={t} privacy={privacy} canvas={canvas} run={run} />}
+        {platform === "whatsapp" && <WAPreview t={t} privacy={privacy} canvas={canvas} run={run} />}
+        {platform === "telegram" && <TelegramPreview t={t} privacy={privacy} canvas={canvas} run={run} />}
       </div>
     </motion.div>
   );
@@ -1555,15 +1585,15 @@ export function PedometerExperience() {
                 </AnimatePresence>
                 <AnimatePresence>
                   {stage === "run" && (
-                    <RunScreen key="run" onBack={() => setStage("detail")} onShare={() => setShare("sheet")} privacy={privacy} setPrivacy={setPrivacy} t={t} />
+                    <RunScreen key="run" onBack={() => setStage("detail")} onShare={() => setShare("sheet")} privacy={privacy} setPrivacy={setPrivacy} t={t} live={live} />
                   )}
                 </AnimatePresence>
                 <AnimatePresence>
                   {stage === "run" && share === "sheet" && (
-                    <ShareSheet key="sheet" t={t} privacy={privacy} onPick={(p) => setShare(p)} onClose={() => setShare(null)} />
+                    <ShareSheet key="sheet" t={t} privacy={privacy} onPick={(p) => setShare(p)} onClose={() => setShare(null)} live={live} />
                   )}
                   {stage === "run" && share !== null && share !== "sheet" && (
-                    <SharePreview key={share} platform={share} onBack={() => setShare("sheet")} privacy={privacy} t={t} />
+                    <SharePreview key={share} platform={share} onBack={() => setShare("sheet")} privacy={privacy} t={t} live={live} />
                   )}
                 </AnimatePresence>
               </div>

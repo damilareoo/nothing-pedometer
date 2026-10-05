@@ -291,4 +291,11 @@ describe("reduced motion", () => {
     expect(src).not.toContain("TODAY&apos;S RUN");
     expect(src).not.toContain("SAMPLE RUN ·");
   });
+
+  it("scales the workout off live steps so the daily read and the km reconcile", () => {
+    expect(src).toContain("function runFigures");
+    expect(src).toContain("RUN_BASE_SEC");
+    expect(src).toContain("STRIDE_M / 1000");
+    expect(src).toContain("run={run}");
+  });
 });
