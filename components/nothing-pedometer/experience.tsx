@@ -1459,31 +1459,48 @@ export function PedometerExperience() {
         </AnimatePresence>
       </div>
       <div className="flex min-h-0 w-full flex-1 items-center justify-center sm:py-4">
-        <div
-          className="relative h-full w-full overflow-hidden sm:h-[860px] sm:max-h-[calc(100dvh-150px)] sm:w-[400px] sm:rounded-[40px] sm:ring-1 sm:ring-white/15"
-          style={{ boxShadow: t.pop }}
-          role="region"
-          aria-label="Nothing Phone pedometer concept"
-        >
-          <AnimatePresence>
-            {stage === "home" && <HomeScreen key="home" now={now} onOpen={open} shellId={shellId} t={t} live={live} fresh={visits === 0} />}
-            {stage === "detail" && (
-              <DetailScreen key="detail" onClose={() => setStage("home")} onRun={() => setStage("run")} visits={visits} shellId={shellId} t={t} live={live} />
-            )}
-          </AnimatePresence>
-          <AnimatePresence>
-            {stage === "run" && (
-              <RunScreen key="run" onBack={() => setStage("detail")} onShare={() => setShare("sheet")} privacy={privacy} setPrivacy={setPrivacy} t={t} />
-            )}
-          </AnimatePresence>
-          <AnimatePresence>
-            {stage === "run" && share === "sheet" && (
-              <ShareSheet key="sheet" t={t} privacy={privacy} onPick={(p) => setShare(p)} onClose={() => setShare(null)} />
-            )}
-            {stage === "run" && share !== null && share !== "sheet" && (
-              <SharePreview key={share} platform={share} onBack={() => setShare("sheet")} privacy={privacy} t={t} />
-            )}
-          </AnimatePresence>
+        {/* Phone (2a) shell — desktop preview only. On a real 2a (small screens)
+            this collapses to full-bleed: the hardware bezel + punch-hole are real,
+            so none of this chrome renders. Uniform slim bezel, centred punch-hole
+            (never an island/notch), power right + volume left. */}
+        <div className="relative h-full w-full sm:h-[868px] sm:max-h-[calc(100dvh-150px)] sm:w-[412px]">
+          <div className="absolute -left-[3px] top-[150px] hidden h-[52px] w-[3px] rounded-l-md bg-black sm:block" aria-hidden />
+          <div className="absolute -left-[3px] top-[210px] hidden h-[52px] w-[3px] rounded-l-md bg-black sm:block" aria-hidden />
+          <div className="absolute -right-[3px] top-[190px] hidden h-[76px] w-[3px] rounded-r-md bg-black sm:block" aria-hidden />
+          <div
+            className="relative h-full w-full overflow-hidden bg-black sm:rounded-[54px] sm:p-[10px] sm:ring-1 sm:ring-white/15"
+            style={{ boxShadow: t.pop }}
+            role="region"
+            aria-label="Nothing Phone 2a pedometer concept"
+          >
+            <div className="relative h-full w-full overflow-hidden sm:rounded-[44px]">
+              {/* punch-hole camera: preview-only, centred in the status-bar gap */}
+              <div className="pointer-events-none absolute left-1/2 top-[14px] z-30 hidden -translate-x-1/2 sm:block" aria-hidden>
+                <div className="flex h-[15px] w-[15px] items-center justify-center rounded-full bg-black">
+                  <div className="h-[6px] w-[6px] rounded-full" style={{ background: "radial-gradient(circle at 35% 35%, #1e2a44 0%, #050507 70%)" }} />
+                </div>
+              </div>
+              <AnimatePresence>
+                {stage === "home" && <HomeScreen key="home" now={now} onOpen={open} shellId={shellId} t={t} live={live} fresh={visits === 0} />}
+                {stage === "detail" && (
+                  <DetailScreen key="detail" onClose={() => setStage("home")} onRun={() => setStage("run")} visits={visits} shellId={shellId} t={t} live={live} />
+                )}
+              </AnimatePresence>
+              <AnimatePresence>
+                {stage === "run" && (
+                  <RunScreen key="run" onBack={() => setStage("detail")} onShare={() => setShare("sheet")} privacy={privacy} setPrivacy={setPrivacy} t={t} />
+                )}
+              </AnimatePresence>
+              <AnimatePresence>
+                {stage === "run" && share === "sheet" && (
+                  <ShareSheet key="sheet" t={t} privacy={privacy} onPick={(p) => setShare(p)} onClose={() => setShare(null)} />
+                )}
+                {stage === "run" && share !== null && share !== "sheet" && (
+                  <SharePreview key={share} platform={share} onBack={() => setShare("sheet")} privacy={privacy} t={t} />
+                )}
+              </AnimatePresence>
+            </div>
+          </div>
         </div>
       </div>
     </main>

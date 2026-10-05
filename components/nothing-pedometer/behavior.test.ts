@@ -208,4 +208,12 @@ describe("reduced motion", () => {
   it("clamps the goal line so over-goal never breaks it", () => {
     expect(src).toContain("Math.min(1, Math.max(0, frac))");
   });
+
+  it("frames the concept as a Phone 2a, never an iPhone", () => {
+    expect(src).toContain("Nothing Phone 2a pedometer concept");
+    expect(src).toContain("top-[14px]");
+    expect(src).toContain("top-[190px]");
+    expect(src).not.toContain("Dynamic Island");
+    expect(src.toLowerCase()).not.toContain("iphone");
+  });
 });
