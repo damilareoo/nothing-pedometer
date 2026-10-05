@@ -56,6 +56,16 @@ describe("reduced motion", () => {
     expect(src).toContain("Steps this week, best");
     expect(src).toContain("Steps by hour today, peak");
     expect(src).toContain("today={week.length - 1}");
+    expect(src).toContain('role="slider"');
+    expect(src).toContain("aria-valuetext");
+    expect(src).toContain("DRAG ACROSS THE CHART");
+    expect(src).toContain("TAP A DAY");
+  });
+
+  it("gives the range switch and week days 44px-class targets", () => {
+    expect(src).toContain("min-h-[44px]");
+    expect(src).toContain("min-h-[110px]");
+    expect(src).toContain("aria-pressed={isSel}");
   });
 
   it("feeds the widget, hero, and week chart from the live snapshot", () => {

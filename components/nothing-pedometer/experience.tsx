@@ -214,8 +214,8 @@ function DottedLine({ frac, total = 30, t }: { frac: number; total?: number; t: 
   );
 }
 
-/** 7-day activity as dot columns. Today reads by brightness, never hue. */
-function WeekDots({ week, today, t }: { week: { d: string; v: number }[]; today: number; t: Tokens }) {
+/** 7-day activity as tappable dot columns. Tap a day to read it — today stays marked red, like the OS live position. */
+function WeekDots({ week, today, selected, onSelect, t }: { week: { d: string; v: number }[]; today: number; selected: number; onSelect: (i: number) => void; t: Tokens }) {
   const max = Math.max(...week.map((w) => w.v), 1);
   const best = week.reduce((bi, b, i) => (b.v > week[bi].v ? i : bi), 0);
   const ROWS = 14;
@@ -224,50 +224,114 @@ function WeekDots({ week, today, t }: { week: { d: string; v: number }[]; today:
       {week.map((b, i) => {
         const lit = Math.max(1, Math.round((b.v / max) * ROWS));
         const isToday = i === today;
+        const isSel = i === selected;
         return (
-          <div key={i} className="flex flex-1 flex-col items-center gap-2">
-            <div className="flex h-[76px] flex-col-reverse justify-start gap-[4px]">
+          <button
+            key={i}
+            type="button"
+            onClick={() => onSelect(i)}
+            aria-pressed={isSel}
+            aria-label={`${b.d} ${b.v.toLocaleString("en-US")} steps${isToday ? ", today" : ""}`}
+            className="flex min-h-[110px] flex-1 flex-col items-center justify-end gap-2 rounded-[12px] pb-1 pt-2"
+            style={{ background: isSel ? t.faint : "transparent" }}
+          >
+            <div className="flex h-[76px] flex-col-reverse justify-start gap-[4px]" aria-hidden>
               {Array.from({ length: ROWS }).map((_, r) => (
                 <span
                   key={r}
-                  className="h-[3px] w-[3px] rounded-full"
-                  style={{ background: r < lit ? (isToday ? t.dot : t.dim) : t.faint }}
+                  className="h-[4px] w-[4px] rounded-full"
+                  style={{ background: r < lit ? (isSel || isToday ? t.dot : t.dim) : t.faint }}
                 />
               ))}
             </div>
-            <span className="font-mono text-[9px] tracking-[0.18em]" style={{ color: isToday ? t.ink : t.dim }}>
+            <span className="font-mono text-[9px] tracking-[0.18em]" style={{ color: isSel || isToday ? t.ink : t.dim }}>
               {b.d}
             </span>
-          </div>
+            <span className="h-[3px] w-[14px] rounded-full" style={{ background: isToday ? t.red : "transparent" }} aria-hidden />
+          </button>
         );
       })}
     </div>
   );
 }
 
-/** 24-hour activity as dot columns — the same language as the week view. */
-function HourlyDots({ t }: { t: Tokens }) {
+/** 24-hour activity as a scrub strip — drag across it like the sample chart. Same dot language, pointer-driven readout. */
+function HourlyDots({ selected, onSelect, t }: { selected: number; onSelect: (i: number) => void; t: Tokens }) {
   const max = Math.max(...HOURLY);
   const ROWS = 12;
+  const ref = useRef<HTMLDivElement>(null);
+  const pick = (clientX: number) => {
+    const el = ref.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    const f = Math.min(1, Math.max(0, (clientX - r.left) / r.width));
+    onSelect(Math.min(23, Math.max(0, Math.floor(f * 24))));
+  };
   return (
-    <div role="img" aria-label={`Steps by hour today, peak ${PEAK_HOUR}:00`}>
-      <div className="flex h-[76px] items-end gap-[2.5px]" aria-hidden>
+    <div
+      ref={ref}
+      role="slider"
+      tabIndex={0}
+      aria-label={`Steps by hour today, peak ${PEAK_HOUR}:00`}
+      aria-valuemin={0}
+      aria-valuemax={23}
+      aria-valuenow={selected}
+      aria-valuetext={`${String(selected).padStart(2, "0")}:00, ${HOURLY[selected].toLocaleString("en-US")} steps`}
+      onPointerDown={(e) => {
+        (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
+        pick(e.clientX);
+      }}
+      onPointerMove={(e) => {
+        if (e.buttons > 0) pick(e.clientX);
+      }}
+      onKeyDown={(e) => {
+        if (e.key === "ArrowLeft") onSelect(Math.max(0, selected - 1));
+        if (e.key === "ArrowRight") onSelect(Math.min(23, selected + 1));
+      }}
+      className="relative select-none outline-none"
+      style={{ touchAction: "none", minHeight: 132 }}
+    >
+      {/* time pill, pinned above the finger — the sample's 11:45PM chip, in Nothing mono */}
+      <div className="relative mb-1 h-[22px]" aria-hidden>
+        <span
+          className="absolute top-0 rounded-full px-2 py-[3px] font-mono text-[9px] tracking-[0.14em]"
+          style={{
+            background: t.dot,
+            color: t.ground,
+            left: `${((selected + 0.5) / 24) * 100}%`,
+            transform: "translateX(-50%)",
+          }}
+        >
+          {String(selected).padStart(2, "0")}:00
+        </span>
+      </div>
+      <div className="relative flex h-[88px] items-end gap-[3px]" aria-hidden>
+        {/* vertical guide through the selected hour */}
+        <span
+          className="pointer-events-none absolute bottom-0 top-0 w-px"
+          style={{ background: t.faint, left: `${((selected + 0.5) / 24) * 100}%` }}
+        />
         {HOURLY.map((v, i) => {
           const lit = Math.round((v / max) * ROWS);
+          const isSel = i === selected;
           return (
             <div key={i} className="flex flex-1 flex-col-reverse justify-start gap-[3px]">
               {Array.from({ length: ROWS }).map((_, r) => (
                 <span
                   key={r}
-                  className="mx-auto h-[2px] w-[2px] rounded-full"
-                  style={{ background: r < lit ? t.dot : t.faint }}
+                  className="mx-auto rounded-full"
+                  style={{
+                    width: isSel ? 4 : 3,
+                    height: isSel ? 4 : 3,
+                    background: r < lit ? (isSel ? t.dot : t.dim) : t.faint,
+                  }}
                 />
               ))}
             </div>
           );
         })}
       </div>
-      <div className="flex justify-between pt-1.5 font-mono text-[8px] tracking-[0.14em]" style={{ color: t.dim }}>
+      <div className="flex justify-between pt-1.5 font-mono text-[8px] tracking-[0.14em]" style={{ color: t.dim }} aria-hidden>
         <span>00</span>
         <span>06</span>
         <span>12</span>
@@ -278,19 +342,34 @@ function HourlyDots({ t }: { t: Tokens }) {
   );
 }
 
-/** One chart, two ranges — Apple's Day/Week switcher in Nothing's language. */
+/** One chart, two ranges — the sample's scrub + pill switcher, in Nothing's dot language. */
 function ActivityCard({ t, live }: { t: Tokens; live: StepsSnapshot | null }) {
   const [range, setRange] = useState<"day" | "week">("day");
   const reduced = useReducedMotion();
   const week = live?.days.map((d) => ({ d: dayInitial(d.date), v: d.steps })) ?? WEEK;
+  const names = live?.days.map((d) => dayName(d.date)) ?? WEEK_DAYS;
+  const today = week.length - 1;
+  const [selDay, setSelDay] = useState(today);
+  const [selHour, setSelHour] = useState(PEAK_HOUR);
+  const day = Math.min(selDay, week.length - 1);
   const avg = live ? Math.round(live.average7).toLocaleString("en-US") : WEEK_AVG;
   const bestIdx = week.reduce((bi, b, i) => (b.v > week[bi].v ? i : bi), 0);
   const best = live
     ? `${dayName(live.days[bestIdx].date)} ${week[bestIdx].v.toLocaleString("en-US")}`
     : WEEK_BEST;
+  const tick = (i: number, set: (n: number) => void) => (n: number) => {
+    if (n !== i) {
+      set(n);
+      try {
+        (navigator as Navigator & { vibrate?: (p: number) => void }).vibrate?.(3);
+      } catch {
+        /* haptics unavailable — selection still lands */
+      }
+    }
+  };
   return (
     <div className="rounded-[20px] p-[18px]" style={{ background: t.card, border: `1px solid ${t.edge}`, boxShadow: t.pop }}>
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-2">
         <p className={SANS_LABEL} style={{ color: t.dim }}>
           Activity
         </p>
@@ -303,7 +382,7 @@ function ActivityCard({ t, live }: { t: Tokens; live: StepsSnapshot | null }) {
                 type="button"
                 onClick={() => setRange(r)}
                 aria-pressed={active}
-                className="relative rounded-full px-3 py-1 font-mono text-[9px] tracking-[0.16em]"
+                className="relative min-h-[44px] min-w-[64px] rounded-full px-4 font-mono text-[10px] tracking-[0.16em]"
                 style={{ color: active ? t.ground : t.dim }}
               >
                 {active && (
@@ -320,7 +399,21 @@ function ActivityCard({ t, live }: { t: Tokens; live: StepsSnapshot | null }) {
           })}
         </div>
       </div>
-      <div className="mt-3 min-h-[104px]">
+      {/* live readout — the sample's big number, in dot-matrix */}
+      <div className="flex items-end justify-between gap-3 pt-3">
+        <Matrix
+          t={t}
+          text={(range === "day" ? HOURLY[selHour] : week[day].v).toLocaleString("en-US")}
+          dot={2.2}
+          pitch={5.4}
+          label={`${(range === "day" ? HOURLY[selHour] : week[day].v).toLocaleString("en-US")} steps`}
+          slots={6}
+        />
+        <p className="pb-1 text-right font-mono text-[9px] tracking-[0.18em]" style={{ color: t.dim }}>
+          {range === "day" ? `${String(selHour).padStart(2, "0")}:00 · STEPS` : `${names[day]}${day === today ? " · TODAY" : ""}${day === bestIdx ? " · BEST" : ""}`}
+        </p>
+      </div>
+      <div className="mt-2 min-h-[150px]">
         <AnimatePresence mode="wait" initial={false}>
           <motion.div
             key={range}
@@ -329,12 +422,19 @@ function ActivityCard({ t, live }: { t: Tokens; live: StepsSnapshot | null }) {
             exit={{ opacity: 0, y: reduced ? 0 : -8 }}
             transition={{ duration: DUR.micro, ease: EASE_OUT }}
           >
-            {range === "day" ? <HourlyDots t={t} /> : <WeekDots week={week} today={week.length - 1} t={t} />}
+            {range === "day" ? (
+              <HourlyDots t={t} selected={selHour} onSelect={tick(selHour, setSelHour)} />
+            ) : (
+              <WeekDots week={week} today={week.length - 1} selected={day} onSelect={tick(day, setSelDay)} t={t} />
+            )}
           </motion.div>
         </AnimatePresence>
       </div>
       <p className="mt-2.5 font-mono text-[10px] tracking-[0.14em]" style={{ color: t.dim }}>
         {range === "day" ? `PEAK ${PEAK_HOUR}:00 · ${PEAK_STEPS} STEPS` : `AVG ${avg} · BEST ${best}`}
+      </p>
+      <p className="mt-1 font-mono text-[9px] tracking-[0.18em]" style={{ color: t.dim }}>
+        {range === "day" ? "DRAG ACROSS THE CHART" : "TAP A DAY"}
       </p>
     </div>
   );
