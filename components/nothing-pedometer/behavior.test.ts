@@ -209,6 +209,12 @@ describe("reduced motion", () => {
     expect(src).toContain("Math.min(1, Math.max(0, frac))");
   });
 
+  it("stages the white 2a on a dark studio floor, full-bleed on the real phone", () => {
+    expect(src).toContain("stage-studio");
+    expect(src).toContain("p-0 sm:px-6");
+    expect(src).not.toContain("px-0 pb-16 pt-2 sm:px-6");
+  });
+
   it("frames the concept as a Phone 2a, never an iPhone", () => {
     expect(src).toContain("Nothing Phone 2a pedometer concept");
     expect(src).toContain("sm:aspect-[76.32/161.74]");

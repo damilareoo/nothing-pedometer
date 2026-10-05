@@ -1460,7 +1460,7 @@ export function PedometerExperience() {
       </div>
       {/* web stage: generous air on all sides, studio floor glow behind the
           device. Mobile stays full-bleed (the real 2a); desktop breathes. */}
-      <div className="relative flex w-full flex-1 items-center justify-center px-0 pb-16 pt-2 sm:px-6 sm:pb-20 sm:pt-8">
+      <div className="stage-studio relative flex w-full flex-1 items-center justify-center p-0 sm:px-6 sm:pb-20 sm:pt-8">
         <div
           className="pointer-events-none absolute left-1/2 top-1/2 hidden h-[720px] w-[720px] -translate-x-1/2 -translate-y-1/2 sm:block"
           aria-hidden

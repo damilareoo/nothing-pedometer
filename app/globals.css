@@ -12,6 +12,16 @@ html {
   }
 }
 
+@media (min-width: 640px) {
+  /* Desktop device stage: dark studio, theme-independent like the wallpaper.
+     The white 2a body needs a dark floor to read against in both OS themes. */
+  .stage-studio {
+    background:
+      radial-gradient(60% 50% at 50% 42%, rgba(255, 255, 255, 0.08), transparent 70%),
+      radial-gradient(120% 100% at 50% 0%, #2a2b31 0%, #17171b 55%, #0e0e11 100%);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
