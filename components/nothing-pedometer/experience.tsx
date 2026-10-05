@@ -1459,46 +1459,53 @@ export function PedometerExperience() {
         </AnimatePresence>
       </div>
       <div className="flex min-h-0 w-full flex-1 items-center justify-center sm:py-4">
-        {/* Phone (2a) shell — desktop preview only. On a real 2a (small screens)
-            this collapses to full-bleed: the hardware bezel + punch-hole are real,
-            so none of this chrome renders. Uniform slim bezel, centred punch-hole
-            (never an island/notch), power right + volume left. */}
-        <div className="relative h-full w-full sm:h-[868px] sm:max-h-[calc(100dvh-150px)] sm:w-[412px]">
-          <div className="absolute -left-[3px] top-[150px] hidden h-[52px] w-[3px] rounded-l-md bg-black sm:block" aria-hidden />
-          <div className="absolute -left-[3px] top-[210px] hidden h-[52px] w-[3px] rounded-l-md bg-black sm:block" aria-hidden />
-          <div className="absolute -right-[3px] top-[190px] hidden h-[76px] w-[3px] rounded-r-md bg-black sm:block" aria-hidden />
+        {/* Phone (2a) in white, true footprint 76.32 × 161.74mm (aspect locked —
+            no stubby preview). Desktop preview only: on a real 2a this collapses
+            to full-bleed, since the bezel + punch-hole are real hardware. */}
+        <div className="relative h-full w-full sm:aspect-[76.32/161.74] sm:h-auto sm:max-h-[calc(100dvh-150px)] sm:w-[412px]">
+          <div className="absolute -left-[4px] top-[17%] hidden h-[6%] w-[4px] rounded-l-md sm:block" style={{ background: "#D8D8D6", boxShadow: "inset 0 0 1px rgba(0,0,0,0.4)" }} aria-hidden />
+          <div className="absolute -left-[4px] top-[24%] hidden h-[6%] w-[4px] rounded-l-md sm:block" style={{ background: "#D8D8D6", boxShadow: "inset 0 0 1px rgba(0,0,0,0.4)" }} aria-hidden />
+          <div className="absolute -right-[4px] top-[21%] hidden h-[8%] w-[4px] rounded-r-md sm:block" style={{ background: "#D8D8D6", boxShadow: "inset 0 0 1px rgba(0,0,0,0.4)" }} aria-hidden />
           <div
-            className="relative h-full w-full overflow-hidden bg-black sm:rounded-[54px] sm:p-[10px] sm:ring-1 sm:ring-white/15"
-            style={{ boxShadow: t.pop }}
+            className="relative h-full w-full overflow-hidden sm:rounded-[54px] sm:p-[3px] sm:ring-1 sm:ring-black/20"
+            style={{
+              background: "#EDEDEB",
+              boxShadow:
+                "0 50px 100px -24px rgba(0,0,0,0.6), 0 18px 36px rgba(0,0,0,0.35), inset 0 1px 1px rgba(255,255,255,0.9), inset 0 -1px 1px rgba(0,0,0,0.12)",
+            }}
             role="region"
             aria-label="Nothing Phone 2a pedometer concept"
           >
-            <div className="relative h-full w-full overflow-hidden sm:rounded-[44px]">
-              {/* punch-hole camera: preview-only, centred in the status-bar gap */}
-              <div className="pointer-events-none absolute left-1/2 top-[14px] z-30 hidden -translate-x-1/2 sm:block" aria-hidden>
-                <div className="flex h-[15px] w-[15px] items-center justify-center rounded-full bg-black">
-                  <div className="h-[6px] w-[6px] rounded-full" style={{ background: "radial-gradient(circle at 35% 35%, #1e2a44 0%, #050507 70%)" }} />
+            <div className="relative h-full w-full overflow-hidden bg-black sm:rounded-[51px] sm:p-[10px]">
+              <div className="relative h-full w-full overflow-hidden sm:rounded-[41px]">
+                {/* punch-hole camera: preview-only, centred in the status-bar gap */}
+                <div className="pointer-events-none absolute left-1/2 top-[14px] z-30 hidden -translate-x-1/2 sm:block" aria-hidden>
+                  <div className="flex h-[15px] w-[15px] items-center justify-center rounded-full bg-black" style={{ boxShadow: "0 0 0 2px rgba(0,0,0,0.9), inset 0 0 2px rgba(80,120,200,0.5)" }}>
+                    <div className="h-[6px] w-[6px] rounded-full" style={{ background: "radial-gradient(circle at 35% 35%, #24365e 0%, #050507 70%)" }} />
+                  </div>
                 </div>
+                {/* glass: barely-there diagonal sheen for the photoreal read, never over content */}
+                <div className="pointer-events-none absolute inset-0 z-30 hidden sm:block" aria-hidden style={{ background: "linear-gradient(115deg, rgba(255,255,255,0.06) 0%, transparent 28%)" }} />
+                <AnimatePresence>
+                  {stage === "home" && <HomeScreen key="home" now={now} onOpen={open} shellId={shellId} t={t} live={live} fresh={visits === 0} />}
+                  {stage === "detail" && (
+                    <DetailScreen key="detail" onClose={() => setStage("home")} onRun={() => setStage("run")} visits={visits} shellId={shellId} t={t} live={live} />
+                  )}
+                </AnimatePresence>
+                <AnimatePresence>
+                  {stage === "run" && (
+                    <RunScreen key="run" onBack={() => setStage("detail")} onShare={() => setShare("sheet")} privacy={privacy} setPrivacy={setPrivacy} t={t} />
+                  )}
+                </AnimatePresence>
+                <AnimatePresence>
+                  {stage === "run" && share === "sheet" && (
+                    <ShareSheet key="sheet" t={t} privacy={privacy} onPick={(p) => setShare(p)} onClose={() => setShare(null)} />
+                  )}
+                  {stage === "run" && share !== null && share !== "sheet" && (
+                    <SharePreview key={share} platform={share} onBack={() => setShare("sheet")} privacy={privacy} t={t} />
+                  )}
+                </AnimatePresence>
               </div>
-              <AnimatePresence>
-                {stage === "home" && <HomeScreen key="home" now={now} onOpen={open} shellId={shellId} t={t} live={live} fresh={visits === 0} />}
-                {stage === "detail" && (
-                  <DetailScreen key="detail" onClose={() => setStage("home")} onRun={() => setStage("run")} visits={visits} shellId={shellId} t={t} live={live} />
-                )}
-              </AnimatePresence>
-              <AnimatePresence>
-                {stage === "run" && (
-                  <RunScreen key="run" onBack={() => setStage("detail")} onShare={() => setShare("sheet")} privacy={privacy} setPrivacy={setPrivacy} t={t} />
-                )}
-              </AnimatePresence>
-              <AnimatePresence>
-                {stage === "run" && share === "sheet" && (
-                  <ShareSheet key="sheet" t={t} privacy={privacy} onPick={(p) => setShare(p)} onClose={() => setShare(null)} />
-                )}
-                {stage === "run" && share !== null && share !== "sheet" && (
-                  <SharePreview key={share} platform={share} onBack={() => setShare("sheet")} privacy={privacy} t={t} />
-                )}
-              </AnimatePresence>
             </div>
           </div>
         </div>

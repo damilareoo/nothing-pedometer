@@ -211,8 +211,9 @@ describe("reduced motion", () => {
 
   it("frames the concept as a Phone 2a, never an iPhone", () => {
     expect(src).toContain("Nothing Phone 2a pedometer concept");
+    expect(src).toContain("sm:aspect-[76.32/161.74]");
+    expect(src).toContain("#EDEDEB");
     expect(src).toContain("top-[14px]");
-    expect(src).toContain("top-[190px]");
     expect(src).not.toContain("Dynamic Island");
     expect(src.toLowerCase()).not.toContain("iphone");
   });
