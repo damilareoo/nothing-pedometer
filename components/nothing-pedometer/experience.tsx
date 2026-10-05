@@ -447,8 +447,13 @@ function Stat({ label, value, sub, t }: { label: string; value: string; sub?: st
         {label}
       </p>
       <p className="mt-1 whitespace-nowrap font-mono text-[17px] tracking-tight" style={{ color: t.ink }}>
-        {value} {sub ? <span className="text-[10px]" style={{ color: t.dim }}>{sub}</span> : null}
+        {value}
       </p>
+      {sub ? (
+        <p className="whitespace-nowrap pt-0.5 font-mono text-[10px] tracking-[0.14em]" style={{ color: t.dim }}>
+          {sub}
+        </p>
+      ) : null}
     </div>
   );
 }
@@ -832,9 +837,9 @@ function DetailScreen({
             whileTap={{ scale: 0.98 }}
             className="flex w-full items-center justify-between rounded-[20px] px-5 py-4 font-mono text-[12px] tracking-[0.18em]"
             style={{ background: t.ink, color: t.ground }}
-            aria-label="View today's run"
+            aria-label="View sample run"
           >
-            <span>TODAY&apos;S RUN · {RUN.dist} KM</span>
+            <span>SAMPLE RUN · {RUN.dist} KM</span>
             <span aria-hidden>
               <ArrowRight size={16} />
             </span>

@@ -245,4 +245,11 @@ describe("reduced motion", () => {
     const heads = src.match(/pt-5 sm:pt-\[42px\]/g) ?? [];
     expect(heads.length).toBe(3);
   });
+
+  it("never promises a real run: the entry is labelled sample until sessions land", () => {
+    expect(src).toContain("SAMPLE RUN ·");
+    expect(src).toContain('aria-label="View sample run"');
+    expect(src).not.toContain("View today's run");
+    expect(src).not.toContain("TODAY&apos;S RUN");
+  });
 });
