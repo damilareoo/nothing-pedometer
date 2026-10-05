@@ -211,14 +211,19 @@ describe("reduced motion", () => {
 
   it("stages the white 2a on a dark studio floor, full-bleed on the real phone", () => {
     expect(src).toContain("stage-studio");
-    expect(src).toContain("p-0 sm:px-6");
+    expect(src).toContain("p-0 sm:p-6");
     expect(src).not.toContain("px-0 pb-16 pt-2 sm:px-6");
+  });
+
+  it("floats the chrome so the full viewport belongs to the device", () => {
+    expect(src).toContain("inset-x-0 top-0 z-40");
+    expect(src).toContain("min-h-dvh w-full items-center justify-center");
   });
 
   it("frames the concept as a Phone 2a, measured off official renders", () => {
     expect(src).toContain("Nothing Phone 2a pedometer concept");
     expect(src).toContain("sm:aspect-[76.32/161.74]");
-    expect(src).toContain("sm:w-[min(382px,calc((100dvh-260px)*0.4719),calc(100vw-64px))]");
+    expect(src).toContain("sm:w-[min(382px,calc((100dvh-48px)*0.4719),calc(100vw-48px))]");
     expect(src).toContain("top-[7.5%]");
     expect(src).toContain('"#141416"');
     expect(src).toContain('"#E8E8E6"');

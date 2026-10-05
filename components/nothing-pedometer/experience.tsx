@@ -1423,46 +1423,54 @@ export function PedometerExperience() {
   }, []);
 
   return (
-    <main className="flex min-h-dvh flex-col items-center overflow-x-clip" style={{ background: t.ground, color: t.ink }}>
-      <div className="hidden items-center gap-2 pt-10 sm:flex" role="group" aria-label="Theme">
-        {(["dark", "light"] as const).map((m) => (
-          <button
-            key={m}
-            type="button"
-            onClick={() => setTheme(m)}
-            aria-pressed={theme === m}
-            className="rounded-full border px-4 py-1.5 font-mono text-[10px] uppercase tracking-[0.22em]"
-            style={{
-              borderColor: t.faint,
-              background: theme === m ? t.ink : "transparent",
-              color: theme === m ? t.ground : t.dim,
-            }}
-          >
-            {m}
-          </button>
-        ))}
-        <span className="pl-2 font-mono text-[10px] uppercase tracking-[0.22em]" style={{ color: t.dim }}>
-          OS 4.1 tokens
-        </span>
+    <main className="relative flex min-h-dvh flex-col items-center overflow-x-clip" style={{ background: t.ground, color: t.ink }}>
+      {/* Floating chrome: overlays the studio, zero flow height, so the full
+          viewport belongs to the device — that is what lets true size fit.
+          Floor-lit (not theme-lit): the floor is always dark. Mobile has no
+          chrome at all and stays full-bleed. */}
+      <div className="pointer-events-none absolute inset-x-0 top-0 z-40 hidden flex-col items-center gap-2 px-6 pt-5 sm:flex">
+        <div className="pointer-events-auto flex items-center gap-2" role="group" aria-label="Theme">
+          {(["dark", "light"] as const).map((m) => (
+            <button
+              key={m}
+              type="button"
+              onClick={() => setTheme(m)}
+              aria-pressed={theme === m}
+              className="rounded-full border px-4 py-1.5 font-mono text-[10px] uppercase tracking-[0.22em]"
+              style={{
+                borderColor: "rgba(255,255,255,0.2)",
+                background: theme === m ? "#FFFFFF" : "transparent",
+                color: theme === m ? "#0A0A0A" : "rgba(255,255,255,0.6)",
+              }}
+            >
+              {m}
+            </button>
+          ))}
+          <span className="pl-2 font-mono text-[10px] uppercase tracking-[0.22em]" style={{ color: "rgba(255,255,255,0.55)" }}>
+            OS 4.1 tokens
+          </span>
+        </div>
+        <div className="flex h-6 items-start justify-center overflow-hidden">
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.p
+              key={stage}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: DUR.micro, ease: EASE_OUT }}
+              className="text-center font-mono text-[10px] uppercase tracking-[0.24em]"
+              style={{ color: "rgba(255,255,255,0.55)" }}
+            >
+              {STAGE_LINE[stage]}
+            </motion.p>
+          </AnimatePresence>
+        </div>
       </div>
-      <div className="hidden h-8 items-start justify-center overflow-hidden pt-2 sm:flex">
-        <AnimatePresence mode="wait" initial={false}>
-          <motion.p
-            key={stage}
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -6 }}
-            transition={{ duration: DUR.micro, ease: EASE_OUT }}
-            className="text-center font-mono text-[10px] uppercase tracking-[0.24em]"
-            style={{ color: t.dim }}
-          >
-            {STAGE_LINE[stage]}
-          </motion.p>
-        </AnimatePresence>
-      </div>
-      {/* web stage: generous air on all sides, studio floor glow behind the
-          device. Mobile stays full-bleed (the real 2a); desktop breathes. */}
-      <div className="stage-studio relative flex w-full flex-1 items-center justify-center p-0 sm:px-6 sm:pb-20 sm:pt-8">
+      {/* web stage: full viewport height, device centred. The chrome floats,
+          so the only budget off the viewport is breathing air (48px) — on a
+          14" MacBook that resolves to exactly true size. Mobile stays
+          full-bleed (the real 2a). */}
+      <div className="stage-studio relative flex min-h-dvh w-full items-center justify-center p-0 sm:p-6">
         <div
           className="pointer-events-none absolute left-1/2 top-1/2 hidden h-[720px] w-[720px] -translate-x-1/2 -translate-y-1/2 sm:block"
           aria-hidden
@@ -1475,8 +1483,9 @@ export function PedometerExperience() {
             (white unit ships contrasting keys), warm-white body. True size
             default: 76.32mm at 127 CSS PPI (MacBook-class retina) = 382px;
             shorter viewports shrink the whole device instead of cramping it.
+            Budget is air only (48px) because the chrome floats.
             Desktop preview only — the phone stays full-bleed. */}
-        <div className="relative h-dvh w-full sm:aspect-[76.32/161.74] sm:h-auto sm:w-[min(382px,calc((100dvh-260px)*0.4719),calc(100vw-64px))]">
+        <div className="relative h-dvh w-full sm:aspect-[76.32/161.74] sm:h-auto sm:w-[min(382px,calc((100dvh-48px)*0.4719),calc(100vw-48px))]">
           <div className="absolute -left-[4px] top-[30%] hidden h-[7%] w-[4px] rounded-l-md sm:block" style={{ background: "#141416", boxShadow: "inset 0 0 1px rgba(255,255,255,0.25)" }} aria-hidden />
           <div className="absolute -left-[4px] top-[39%] hidden h-[7%] w-[4px] rounded-l-md sm:block" style={{ background: "#141416", boxShadow: "inset 0 0 1px rgba(255,255,255,0.25)" }} aria-hidden />
           <div className="absolute -right-[4px] top-[34%] hidden h-[8%] w-[4px] rounded-r-md sm:block" style={{ background: "#141416", boxShadow: "inset 0 0 1px rgba(255,255,255,0.25)" }} aria-hidden />
