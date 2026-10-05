@@ -215,15 +215,22 @@ describe("reduced motion", () => {
     expect(src).not.toContain("px-0 pb-16 pt-2 sm:px-6");
   });
 
-  it("frames the concept as a Phone 2a, never an iPhone", () => {
+  it("frames the concept as a Phone 2a, measured off official renders", () => {
     expect(src).toContain("Nothing Phone 2a pedometer concept");
     expect(src).toContain("sm:aspect-[76.32/161.74]");
-    expect(src).toContain("sm:w-[min(412px,calc((100dvh-260px)*0.4719),calc(100vw-64px))]");
+    expect(src).toContain("sm:w-[min(382px,calc((100dvh-260px)*0.4719),calc(100vw-64px))]");
+    expect(src).toContain("top-[7.5%]");
+    expect(src).toContain('"#141416"');
+    expect(src).toContain('"#E8E8E6"');
     expect(src).not.toContain("sm:max-h-[calc(100dvh-150px)]");
-    expect(src).toContain("min-h-dvh");
-    expect(src).toContain("#EDEDEB");
-    expect(src).toContain("top-[14px]");
+    expect(src).not.toContain("top-[14px]");
     expect(src).not.toContain("Dynamic Island");
     expect(src.toLowerCase()).not.toContain("iphone");
+  });
+
+  it("leaves the phone path untouched: base spacing ships, sm: only dresses desktop", () => {
+    expect(src).toContain("px-6 pt-4 font-mono");
+    expect(src).toContain("sm:pt-[40px]");
+    expect(src).toContain("relative h-dvh w-full sm:aspect-");
   });
 });

@@ -584,7 +584,9 @@ function RouteMap({ reduced, t, privateZones }: { reduced: boolean; t: Tokens; p
 
 function StatusBar({ time, t, onWidget }: { time: string; t: Tokens; onWidget: boolean }) {
   return (
-    <div className="flex items-center justify-between px-6 pt-4 font-mono text-[12px] tracking-[0.02em]" style={{ color: onWidget ? "#fff" : t.ink }}>
+    /* base pt-4 is the phone as-shipped — untouched. sm:pt drops the desktop
+       preview row onto the punch-hole line, per official renders. */
+    <div className="flex items-center justify-between px-6 pt-4 font-mono text-[12px] tracking-[0.02em] sm:pt-[40px]" style={{ color: onWidget ? "#fff" : t.ink }}>
       <span>{time}</span>
       <span className="flex items-center gap-1.5" aria-label="Signal, wifi, battery">
         <svg width="17" height="11" viewBox="0 0 17 11" aria-hidden>
@@ -1466,18 +1468,22 @@ export function PedometerExperience() {
           aria-hidden
           style={{ background: "radial-gradient(closest-side, rgba(255,255,255,0.07), transparent 70%)" }}
         />
-        {/* Phone (2a) in white, true footprint 76.32 × 161.74mm. Width is the
-            single driver — min(412px, viewport-height fit, viewport-width fit)
-            — height always derives from aspect, so short viewports shrink the
-            whole device instead of cramping it. Desktop preview only. */}
-        <div className="relative h-dvh w-full sm:aspect-[76.32/161.74] sm:h-auto sm:w-[min(412px,calc((100dvh-260px)*0.4719),calc(100vw-64px))]">
-          <div className="absolute -left-[4px] top-[17%] hidden h-[6%] w-[4px] rounded-l-md sm:block" style={{ background: "#D8D8D6", boxShadow: "inset 0 0 1px rgba(0,0,0,0.4)" }} aria-hidden />
-          <div className="absolute -left-[4px] top-[24%] hidden h-[6%] w-[4px] rounded-l-md sm:block" style={{ background: "#D8D8D6", boxShadow: "inset 0 0 1px rgba(0,0,0,0.4)" }} aria-hidden />
-          <div className="absolute -right-[4px] top-[21%] hidden h-[8%] w-[4px] rounded-r-md sm:block" style={{ background: "#D8D8D6", boxShadow: "inset 0 0 1px rgba(0,0,0,0.4)" }} aria-hidden />
+        {/* Phone (2a) in white, measured off Nothing's official front renders:
+            76.32 × 161.74mm footprint (aspect-locked), uniform slim bezels
+            (no chin — renders confirm symmetry), centred hole at ~7.5% of
+            height, two separate black volume keys left + black power right
+            (white unit ships contrasting keys), warm-white body. True size
+            default: 76.32mm at 127 CSS PPI (MacBook-class retina) = 382px;
+            shorter viewports shrink the whole device instead of cramping it.
+            Desktop preview only — the phone stays full-bleed. */}
+        <div className="relative h-dvh w-full sm:aspect-[76.32/161.74] sm:h-auto sm:w-[min(382px,calc((100dvh-260px)*0.4719),calc(100vw-64px))]">
+          <div className="absolute -left-[4px] top-[30%] hidden h-[7%] w-[4px] rounded-l-md sm:block" style={{ background: "#141416", boxShadow: "inset 0 0 1px rgba(255,255,255,0.25)" }} aria-hidden />
+          <div className="absolute -left-[4px] top-[39%] hidden h-[7%] w-[4px] rounded-l-md sm:block" style={{ background: "#141416", boxShadow: "inset 0 0 1px rgba(255,255,255,0.25)" }} aria-hidden />
+          <div className="absolute -right-[4px] top-[34%] hidden h-[8%] w-[4px] rounded-r-md sm:block" style={{ background: "#141416", boxShadow: "inset 0 0 1px rgba(255,255,255,0.25)" }} aria-hidden />
           <div
             className="relative h-full w-full overflow-hidden sm:rounded-[54px] sm:p-[3px] sm:ring-1 sm:ring-black/20"
             style={{
-              background: "#EDEDEB",
+              background: "#E8E8E6",
               boxShadow:
                 "0 50px 100px -24px rgba(0,0,0,0.6), 0 18px 36px rgba(0,0,0,0.35), inset 0 1px 1px rgba(255,255,255,0.9), inset 0 -1px 1px rgba(0,0,0,0.12)",
             }}
@@ -1486,9 +1492,10 @@ export function PedometerExperience() {
           >
             <div className="relative h-full w-full overflow-hidden bg-black sm:rounded-[51px] sm:p-[10px]">
               <div className="relative h-full w-full overflow-hidden sm:rounded-[41px]">
-                {/* punch-hole camera: preview-only, centred in the status-bar gap */}
-                <div className="pointer-events-none absolute left-1/2 top-[14px] z-30 hidden -translate-x-1/2 sm:block" aria-hidden>
-                  <div className="flex h-[15px] w-[15px] items-center justify-center rounded-full bg-black" style={{ boxShadow: "0 0 0 2px rgba(0,0,0,0.9), inset 0 0 2px rgba(80,120,200,0.5)" }}>
+                {/* punch-hole camera: preview-only, centre ~7.5% of body height
+                    per official renders — the status row sits on the same line */}
+                <div className="pointer-events-none absolute left-1/2 top-[7.5%] z-30 hidden -translate-x-1/2 -translate-y-1/2 sm:block" aria-hidden>
+                  <div className="flex h-[16px] w-[16px] items-center justify-center rounded-full bg-black" style={{ boxShadow: "0 0 0 2px rgba(0,0,0,0.9), inset 0 0 2px rgba(80,120,200,0.5)" }}>
                     <div className="h-[6px] w-[6px] rounded-full" style={{ background: "radial-gradient(circle at 35% 35%, #24365e 0%, #050507 70%)" }} />
                   </div>
                 </div>
