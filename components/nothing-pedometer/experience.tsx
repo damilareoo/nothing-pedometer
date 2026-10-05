@@ -1459,10 +1459,11 @@ export function PedometerExperience() {
         </AnimatePresence>
       </div>
       <div className="flex min-h-0 w-full flex-1 items-center justify-center sm:py-4">
-        {/* Phone (2a) in white, true footprint 76.32 × 161.74mm (aspect locked —
-            no stubby preview). Desktop preview only: on a real 2a this collapses
-            to full-bleed, since the bezel + punch-hole are real hardware. */}
-        <div className="relative h-full w-full sm:aspect-[76.32/161.74] sm:h-auto sm:max-h-[calc(100dvh-150px)] sm:w-[412px]">
+        {/* Phone (2a) in white, true footprint 76.32 × 161.74mm. Width is the
+            single driver — min(412px, viewport-height fit, viewport-width fit)
+            — height always derives from aspect, so short viewports shrink the
+            whole device instead of cramping it. Desktop preview only. */}
+        <div className="relative h-full w-full sm:aspect-[76.32/161.74] sm:h-auto sm:w-[min(412px,calc((100dvh-150px)*0.4719),calc(100vw-32px))]">
           <div className="absolute -left-[4px] top-[17%] hidden h-[6%] w-[4px] rounded-l-md sm:block" style={{ background: "#D8D8D6", boxShadow: "inset 0 0 1px rgba(0,0,0,0.4)" }} aria-hidden />
           <div className="absolute -left-[4px] top-[24%] hidden h-[6%] w-[4px] rounded-l-md sm:block" style={{ background: "#D8D8D6", boxShadow: "inset 0 0 1px rgba(0,0,0,0.4)" }} aria-hidden />
           <div className="absolute -right-[4px] top-[21%] hidden h-[8%] w-[4px] rounded-r-md sm:block" style={{ background: "#D8D8D6", boxShadow: "inset 0 0 1px rgba(0,0,0,0.4)" }} aria-hidden />
