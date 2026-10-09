@@ -8,7 +8,7 @@ import { SHARE_CANVASES, photoCanvas, type ShareCanvas } from "@/lib/share-canva
 import { sharePosterPNG, sharePosterSVG } from "@/lib/share-poster";
 import { ROUTE } from "@/lib/route";
 import type { StepsSnapshot } from "@/lib/steps";
-import { ArrowLeft, ArrowRight, CameraIcon, GearIcon, InstagramIcon, MessageIcon, PhoneIcon, SearchIcon, ShareIcon, TelegramIcon, WhatsAppIcon, XIcon } from "./icons";
+import { ArrowLeft, ArrowRight, CameraIcon, GearIcon, InstagramIcon, MessageIcon, PhoneIcon, SearchIcon, TelegramIcon, WhatsAppIcon, XIcon } from "./icons";
 import { DotText } from "./dot-matrix";
 
 /**
@@ -103,6 +103,20 @@ const SPLITS = [
 
 const ELEV = [4, 6, 8, 7, 10, 12, 11, 14, 16, 15, 18, 22, 20, 24, 21, 26, 24, 28, 25, 22, 18, 14, 10, 8, 6, 5, 4, 3];
 const ELEV_GAIN = 86;
+
+/** Caption math, derived so the words can never disagree with the shapes. */
+function paceSec(p: string): number {
+  const m = p.match(/(\d+)'(\d+)''/);
+  return m ? Number(m[1]) * 60 + Number(m[2]) : 0;
+}
+const SPLIT_SECS = SPLITS.map((s) => paceSec(s.pace));
+const FASTEST_SPLIT = SPLITS[SPLIT_SECS.indexOf(Math.min(...SPLIT_SECS))];
+const SPLIT_LINE = `FASTEST KM ${FASTEST_SPLIT.km} · ${FASTEST_SPLIT.pace} · HR ${SPLITS[0].hr}→${SPLITS[SPLITS.length - 1].hr}`;
+const ELEV_PEAK_KM = Math.max(
+  1,
+  Math.round(((ELEV.indexOf(Math.max(...ELEV)) + 0.5) / ELEV.length) * RUN_BASE_DIST),
+);
+const ELEV_LINE = `PEAK NEAR KM ${String(ELEV_PEAK_KM).padStart(2, "0")}`;
 
 const MICRO = "font-mono text-[10px] uppercase tracking-[0.22em]";
 const SANS_LABEL = "text-[14px] font-medium";
@@ -498,6 +512,7 @@ function RouteMap({ reduced, t, privateZones, dist }: { reduced: boolean; t: Tok
   const zoneBRef = useRef<SVGPathElement>(null);
   const runnerRef = useRef<SVGCircleElement>(null);
   const haloRef = useRef<SVGCircleElement>(null);
+  const progressRef = useRef<SVGTextElement>(null);
   const ringRefs = useRef<(SVGGElement | null)[]>([]);
   const [marks, setMarks] = useState<{ x: number; y: number }[]>([]);
   const [ends, setEnds] = useState({ sx: 44, sy: 200, ex: 96, ey: 200 });
@@ -538,6 +553,11 @@ function RouteMap({ reduced, t, privateZones, dist }: { reduced: boolean; t: Tok
       runnerRef.current?.setAttribute("cy", String(tip.y));
       haloRef.current?.setAttribute("cx", String(tip.x));
       haloRef.current?.setAttribute("cy", String(tip.y));
+      /* Live progress readout, written straight to the DOM so the 60fps
+         loop never re-renders React. Fraction of path ≈ fraction of run. */
+      if (progressRef.current) {
+        progressRef.current.textContent = `KM ${(f * parseFloat(dist)).toFixed(1)} / ${dist}`;
+      }
       FRACTIONS.forEach((fr, i) => {
         ringRefs.current[i]?.setAttribute("opacity", fr <= f ? "1" : "0.25");
       });
@@ -597,6 +617,9 @@ function RouteMap({ reduced, t, privateZones, dist }: { reduced: boolean; t: Tok
           START
         </text>
         <circle cx={ends.ex} cy={ends.ey} r={5} fill={t.red} />
+        <text x={ends.ex} y={ends.ey - 12} textAnchor="middle" fill={t.red} fontSize={10} fontFamily="monospace" letterSpacing={1} {...halo}>
+          FINISH
+        </text>
       </g>
       {privateZones && (
         <>
@@ -618,6 +641,9 @@ function RouteMap({ reduced, t, privateZones, dist }: { reduced: boolean; t: Tok
       )}
       <circle ref={haloRef} r={11} fill="none" stroke={t.red} strokeWidth={1.5} opacity={0.5} />
       <circle ref={runnerRef} r={4.5} fill={t.red} stroke={t.card} strokeWidth={1.5} />
+      <text ref={progressRef} x={10} y={242} fill={t.ink} fontSize={10} fontFamily="monospace" letterSpacing={1} {...halo}>
+        {`KM 0.0 / ${dist}`}
+      </text>
     </svg>
   );
 }
@@ -811,6 +837,9 @@ function DetailScreen({
   const goal = live?.goal ?? GOAL;
   const run = runFigures(live);
   const steps = useCountUp(target, visits);
+  /* Tap-to-decode: the hero numerals flip to plain figures and back.
+     Everything morphs on tap in this concept, so numerals do too. */
+  const [decoded, setDecoded] = useState(false);
   const pct = Math.max(0, Math.round((target / goal) * 100));
   const toGo = Math.max(0, goal - target).toLocaleString("en-US");
   const goalFmt = goal.toLocaleString("en-US");
@@ -837,16 +866,27 @@ function DetailScreen({
             <ArrowLeft size={20} />
           </button>
         </div>
-        <h1 className="px-5 pt-2 text-[46px] leading-none" style={{ fontFamily: t.serif, color: t.ink }}>
+        <h1 className="px-5 pt-2 text-[34px] leading-none" style={{ fontFamily: t.serif, color: t.ink }}>
           Today
         </h1>
-        <p className={`${MICRO} px-5 pt-2`} style={{ color: t.dim }}>
-          Pedometer
-        </p>
 
         <Rise index={0} className="px-4 pt-4">
           <div className="rounded-[20px] p-[18px]" style={{ background: t.card, border: `1px solid ${t.edge}`, boxShadow: t.pop }}>
-            <Matrix t={t} text={steps.toLocaleString("en-US")} dot={3.2} pitch={8} label={`${steps} steps`} slots={6} />
+            <button
+              type="button"
+              onClick={() => setDecoded((d) => !d)}
+              aria-pressed={decoded}
+              aria-label={decoded ? "Show dot-matrix numerals" : `Show ${steps.toLocaleString("en-US")} as plain numbers`}
+              className="block w-full cursor-pointer text-left"
+            >
+              {decoded ? (
+                <p className="font-mono font-medium tabular-nums" style={{ color: t.ink, fontSize: 44, lineHeight: 1.15 }}>
+                  {steps.toLocaleString("en-US")}
+                </p>
+              ) : (
+                <Matrix t={t} text={steps.toLocaleString("en-US")} dot={3.2} pitch={8} label={`${steps} steps`} slots={6} />
+              )}
+            </button>
             <div className="mt-3.5">
               <DottedLine frac={target / goal} total={32} t={t} />
             </div>
@@ -898,6 +938,7 @@ function RunScreen({ onBack, onShare, privacy, setPrivacy, t, live }: { onBack: 
   const reduced = useReducedMotion();
   const max = Math.max(...ELEV);
   const run = runFigures(live);
+  const [decoded, setDecoded] = useState(false);
   return (
     <motion.div
       className="absolute inset-0 flex flex-col"
@@ -923,16 +964,13 @@ function RunScreen({ onBack, onShare, privacy, setPrivacy, t, live }: { onBack: 
             type="button"
             onClick={onShare}
             aria-label="Share this run"
-            className="flex min-h-[44px] min-w-[44px] items-center justify-center gap-2 rounded-full px-3 font-mono text-[10px] uppercase tracking-[0.22em]"
+            className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full px-3 font-mono text-[10px] uppercase tracking-[0.22em]"
             style={{ color: t.dim }}
           >
-            <span aria-hidden className="flex">
-              <ShareIcon size={18} />
-            </span>
             SHARE
           </button>
         </div>
-        <h1 className="px-5 pt-2 text-[46px] leading-none" style={{ fontFamily: t.serif, color: t.ink }}>
+        <h1 className="px-5 pt-2 text-[34px] leading-none" style={{ fontFamily: t.serif, color: t.ink }}>
           Morning run
         </h1>
         <p className={`${MICRO} px-5 pt-2`} style={{ color: t.dim }}>
@@ -940,7 +978,21 @@ function RunScreen({ onBack, onShare, privacy, setPrivacy, t, live }: { onBack: 
         </p>
 
         <div className="px-5 pt-4">
-          <Matrix t={t} text={run.dist} dot={2.6} pitch={6.5} label={`${run.dist} kilometres`} />
+          <button
+            type="button"
+            onClick={() => setDecoded((d) => !d)}
+            aria-pressed={decoded}
+            aria-label={decoded ? "Show dot-matrix numerals" : `Show ${run.dist} kilometres as plain numbers`}
+            className="block w-full cursor-pointer text-left"
+          >
+            {decoded ? (
+              <p className="font-mono font-medium tabular-nums" style={{ color: t.ink, fontSize: 40, lineHeight: 1.15 }}>
+                {run.dist} <span className="text-[0.45em] tracking-[0.18em]" style={{ color: t.dim }}>KM</span>
+              </p>
+            ) : (
+              <Matrix t={t} text={run.dist} dot={2.6} pitch={6.5} label={`${run.dist} kilometres`} />
+            )}
+          </button>
         </div>
 
         <Rise index={0} className="px-4 pt-3">
@@ -1015,6 +1067,9 @@ function RunScreen({ onBack, onShare, privacy, setPrivacy, t, live }: { onBack: 
                 />
               ))}
             </div>
+            <p className="mt-2.5 font-mono text-[10px] tracking-[0.16em]" style={{ color: t.dim }}>
+              {ELEV_LINE}
+            </p>
           </div>
         </Rise>
 
@@ -1032,6 +1087,9 @@ function RunScreen({ onBack, onShare, privacy, setPrivacy, t, live }: { onBack: 
                 <span style={{ color: t.dim }}>{s.hr} BPM</span>
               </div>
             ))}
+            <p className="border-t px-[18px] py-3 font-mono text-[10px] tracking-[0.16em]" style={{ borderColor: t.faint, color: t.dim }}>
+              {SPLIT_LINE}
+            </p>
           </div>
         </Rise>
       </div>
@@ -1092,10 +1150,10 @@ function ShareSheet({ t, privacy, onPick, onClose, live }: { t: Tokens; privacy:
   /* Target tiles wear the platforms' real colors (Simple Icons hexes —
      no house tints. Instagram's real color is its brand gradient). */
   const targets = [
-    { id: "x", label: "X", bg: "#000000", fg: "#FFFFFF", Icon: XIcon },
-    { id: "instagram", label: "Instagram", bg: "linear-gradient(45deg, #FEDA75 0%, #FA7E1E 25%, #D62976 50%, #962FBF 75%, #4F5BD5 100%)", fg: "#FFFFFF", Icon: InstagramIcon },
-    { id: "whatsapp", label: "WhatsApp", bg: "#25D366", fg: "#FFFFFF", Icon: WhatsAppIcon },
-    { id: "telegram", label: "Telegram", bg: "#26A5E4", fg: "#FFFFFF", Icon: TelegramIcon },
+    { id: "x", label: "X", bg: "#000000", fg: "#FFFFFF", Icon: XIcon, size: 26 },
+    { id: "instagram", label: "Instagram", bg: "linear-gradient(45deg, #FEDA75 0%, #FA7E1E 25%, #D62976 50%, #962FBF 75%, #4F5BD5 100%)", fg: "#FFFFFF", Icon: InstagramIcon, size: 22 },
+    { id: "whatsapp", label: "WhatsApp", bg: "#25D366", fg: "#FFFFFF", Icon: WhatsAppIcon, size: 22 },
+    { id: "telegram", label: "Telegram", bg: "#26A5E4", fg: "#FFFFFF", Icon: TelegramIcon, size: 22 },
   ] as const;
   const reduced = useReducedMotion();
   return (
@@ -1145,7 +1203,7 @@ function ShareSheet({ t, privacy, onPick, onClose, live }: { t: Tokens; privacy:
           {targets.map((r) => (
             <button key={r.id} type="button" onClick={() => onPick(r.id)} className="flex min-h-[64px] flex-col items-center gap-2 py-2">
               <span className="flex h-14 w-14 items-center justify-center rounded-full" style={{ background: r.bg, color: r.fg }} aria-hidden>
-                <r.Icon size={22} />
+                <r.Icon size={r.size} />
               </span>
               <span className="text-[12px]" style={{ color: t.ink }}>
                 {r.label}
@@ -1450,6 +1508,13 @@ export function PedometerExperience() {
   const [theme, setTheme] = useState<ThemeName>("dark");
   const [share, setShareState] = useState<null | ShareTarget>(null);
   const [privacy, setPrivacy] = useState(true);
+  /* Record mode (?clean=1): hides the floating chrome + floor glow + phone
+     drop shadow so a screen recording composites over any presentation bg
+     without a dark halo. Effect-set to avoid an SSR hydration mismatch. */
+  const [clean, setClean] = useState(false);
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("clean") === "1") setClean(true);
+  }, []);
   const reduced = useReducedMotion();
   const now = useNow();
   const live = useLiveSteps();
@@ -1489,7 +1554,9 @@ export function PedometerExperience() {
           can never collide with the frame, the hole, or in-screen headers).
           Zero flow height — the full viewport belongs to the device. Only on
           wide screens (lg); smaller viewports and the phone get no chrome.
-          Floor-lit (not theme-lit): the floor is always dark. */}
+          Floor-lit (not theme-lit): the floor is always dark.
+          Hidden in record mode (?clean=1) so recordings stay chrome-free. */}
+      {!clean && (
       <div
         className="pointer-events-none absolute z-40 hidden lg:block"
         style={{ left: "max(24px, calc(50% - 440px))", top: "50%", transform: "translateY(-50%)" }}
@@ -1533,16 +1600,33 @@ export function PedometerExperience() {
           </div>
         </div>
       </div>
+      )}
       {/* web stage: full viewport height, device centred. The chrome floats,
           so the only budget off the viewport is breathing air (48px) — on a
           14" MacBook that resolves to exactly true size. Mobile stays
-          full-bleed (the real 2a). */}
+          full-bleed (the real 2a).
+          Drop a presentation photo at public/stage-bg.jpg and the stage shows
+          it (cover) over the studio gradient with a legibility scrim — record
+          straight over your final bg instead of keying black out later.
+          Missing file degrades to the gradient; nothing 404s visibly. */}
       <div className="stage-studio relative flex min-h-dvh w-full items-center justify-center p-0 sm:p-6">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 bg-cover bg-center"
+          style={{ backgroundImage: "url(/stage-bg.jpg)" }}
+        />
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0"
+          style={{ background: "rgba(8,8,10,0.42)" }}
+        />
+        {!clean && (
         <div
           className="pointer-events-none absolute left-1/2 top-1/2 hidden h-[720px] w-[720px] -translate-x-1/2 -translate-y-1/2 sm:block"
           aria-hidden
           style={{ background: "radial-gradient(closest-side, rgba(255,255,255,0.07), transparent 70%)" }}
         />
+        )}
         {/* Phone (2a) in white, measured off Nothing's official front render:
             76.32 × 161.74mm footprint (aspect-locked), uniform slim bezels,
             hole centre 2.8% of the screen with the status row on its line,
@@ -1557,8 +1641,9 @@ export function PedometerExperience() {
             className="relative h-full w-full overflow-hidden sm:rounded-[42px] sm:p-[3px] sm:ring-1 sm:ring-black/20"
             style={{
               background: "#E8E8E6",
-              boxShadow:
-                "0 50px 100px -24px rgba(0,0,0,0.6), 0 18px 36px rgba(0,0,0,0.35), inset 0 1px 1px rgba(255,255,255,0.9), inset 0 -1px 1px rgba(0,0,0,0.12)",
+              boxShadow: clean
+                ? "inset 0 1px 1px rgba(255,255,255,0.9), inset 0 -1px 1px rgba(0,0,0,0.12)"
+                : "0 50px 100px -24px rgba(0,0,0,0.6), 0 18px 36px rgba(0,0,0,0.35), inset 0 1px 1px rgba(255,255,255,0.9), inset 0 -1px 1px rgba(0,0,0,0.12)",
             }}
             role="region"
             aria-label="Nothing Phone 2a pedometer concept"

@@ -52,6 +52,23 @@ npx tsc --noEmit          # typecheck
 On your Phone (2a): same Wi-Fi, `pnpm dev --host -- --port 3001`, open the
 printed Network URL. Full-bleed at 120Hz.
 
+## Stage background (recording)
+
+The desktop stage paints `public/stage-bg.jpg` (cover) over the studio
+gradient with a 42% dark scrim, so a screen recording already sits on your
+presentation bg — no keying black out later. No file yet? The gradient
+shows; nothing breaks.
+
+```bash
+# drop your presentation photo here, then redeploy
+public/stage-bg.jpg
+```
+
+Record chrome-free: open `https://nothing-pedometer.vercel.app/?clean=1`
+(chrome, floor glow, and phone drop shadow off — no dark halo when you
+composite). `html` ground is `#0e0e11` (studio floor), not pure black, so
+edges blend instead of crushing.
+
 ## Live step count (optional)
 
 Without configuration the concept runs on fixtures. With it, the widget,

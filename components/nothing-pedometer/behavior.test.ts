@@ -115,14 +115,34 @@ describe("reduced motion", () => {
     expect(src).toContain("{privacy && <span");
   });
 
-  it("gives share a 44px icon-plus-label target", () => {
+  it("gives share a 44px text-only target, no icon repeating the label", () => {
     expect(src).toContain("min-h-[44px]");
-    expect(src).toContain("<ShareIcon size={18} />");
+    expect(src).toContain("SHARE");
+    expect(src).not.toContain("ShareIcon");
   });
 
   it("lets elevation speak its total climb", () => {
     expect(src).toContain("ELEV_GAIN");
     expect(src).toContain("Elevation profile, plus");
+  });
+
+  it("states the takeaway on splits and elevation, derived never written", () => {
+    expect(src).toContain("SPLIT_LINE");
+    expect(src).toContain("ELEV_LINE");
+    expect(src).toContain("FASTEST KM");
+    expect(src).toContain("PEAK NEAR KM");
+  });
+
+  it("decodes hero numerals on tap, comprehension never needs dots", () => {
+    expect(src).toContain("setDecoded");
+    expect(src).toContain("Show dot-matrix numerals");
+    expect(src).toContain("as plain numbers");
+  });
+
+  it("labels the trace finish and reads live progress without re-renders", () => {
+    expect(src).toContain("FINISH");
+    expect(src).toContain("progressRef");
+    expect(src).toContain("KM ${(f * parseFloat(dist)).toFixed(1)}");
   });
 
   it("shows what is being shared before the targets", () => {
