@@ -17,7 +17,7 @@ import { DotText } from "./dot-matrix";
  *
  * Measured tokens (lib/theme.ts): widget black #1B1A1F, settings ground
  * #232228 / cards #333237, the one red #E11A1B. Widget copy is the real
- * thing — "162 / TOTAL TODAY / 1 %" over "7,442 / 7-DAY AVERAGE / 74 %".
+ * thing — "TOTAL TODAY" over "7-DAY AVERAGE", one today figure everywhere.
  *
  * Three stages: homescreen widget -> tap expands (shared element) into a
  * settings-language dashboard -> run trace. Back is always one level per
@@ -28,20 +28,23 @@ import { DotText } from "./dot-matrix";
 /* --------------------------------- fixtures ---------------------------------- */
 /* Concept fixtures, one block, one seam: every number below is static demo
    data. A live source (Health Connect post, at-home mock) replaces this block
-   whole — no component reaches past it for a number. Widget copy ("162 /
-   7,442") is the real device wording and stays even when values go live. */
+   whole — no component reaches past it for a number. The device wording
+   ("TOTAL TODAY" over "7-DAY AVERAGE") stays even when values go live; the
+   fixture today is STEPS everywhere, so widget and detail can never disagree. */
 
 const STEPS = 7284;
 const GOAL = 10000;
 const GOAL_PCT = Math.round((STEPS / GOAL) * 100);
 const GOAL_TO_GO = (GOAL - STEPS).toLocaleString("en-US");
 const GOAL_FMT = GOAL.toLocaleString("en-US");
-const KM = 5.2;
 const KCAL = 312;
 const ACTIVE_MIN = 48;
 /** Average adult stride: the standard pedometer assumption behind every
     step-to-distance readout. Disclosed here, not hidden in the math. */
 const STRIDE_M = 0.75;
+
+/** Step-to-km readout, one formula everywhere steps meet kilometres. */
+const kmOf = (steps: number) => ((steps * STRIDE_M) / 1000).toFixed(1);
 
 const WEEK = [
   { d: "M", v: 5120 },
@@ -59,10 +62,6 @@ const WEEK_AVG = Math.round(WEEK.reduce((a, b) => a + b.v, 0) / WEEK.length).toL
 const BEST_IDX = WEEK.reduce((bi, b, i) => (b.v > WEEK[bi].v ? i : bi), 0);
 const WEEK_BEST = `${WEEK_DAYS[BEST_IDX]} ${WEEK[BEST_IDX].v.toLocaleString("en-US")}`;
 
-const HOURLY = [0, 0, 0, 0, 0, 0, 120, 680, 420, 180, 240, 310, 520, 280, 190, 340, 410, 860, 1240, 540, 220, 90, 20, 0];
-const PEAK_HOUR = HOURLY.indexOf(Math.max(...HOURLY));
-const PEAK_STEPS = Math.max(...HOURLY).toLocaleString("en-US");
-
 const RUN = { dist: "5.2", time: "32:14", pace: "6'12''", kcal: "268", when: "06:42" };
 /** The run is a curated sample until the feed serves ExerciseSessions. */
 const RUN_SAMPLE = true;
@@ -70,6 +69,26 @@ const RUN_SAMPLE = true;
 const RUN_BASE_SEC = 32 * 60 + 14;
 const RUN_BASE_DIST = 5.2;
 const RUN_BASE_KCAL = 268;
+
+/**
+ * One truth for the sample day: today's STEPS contain the 06:42 morning run.
+ * Hours 06-07 carry the run's steps; elapsed bars always sum to today.
+ * Later hours keep a plausible shape; the clock masks what has not happened
+ * yet, and the visible peak counts elapsed hours only.
+ */
+const RUN_STEPS = Math.round((RUN_BASE_DIST * 1000) / STRIDE_M);
+const RUN_H6_FRAC = ((60 - Number(RUN.when.split(":")[1])) * 60) / RUN_BASE_SEC;
+const RUN_H6 = Math.round(RUN_STEPS * RUN_H6_FRAC);
+const RUN_H7 = RUN_STEPS - RUN_H6;
+const BG_REST = STEPS - RUN_STEPS;
+const BG_SCALE = BG_REST / (420 + 180 + 240);
+const HOURLY = [
+  0, 0, 0, 0, 0, 0, RUN_H6, RUN_H7,
+  Math.round(420 * BG_SCALE),
+  Math.round(180 * BG_SCALE),
+  BG_REST - Math.round(420 * BG_SCALE) - Math.round(180 * BG_SCALE),
+  310, 520, 280, 190, 340, 410, 860, 1240, 540, 220, 90, 20, 0,
+];
 
 function fmtDuration(totalSec: number): string {
   const m = Math.floor(totalSec / 60);
@@ -298,8 +317,8 @@ function WeekDots({ week, today, selected, onSelect, t }: { week: { d: string; v
   );
 }
 
-/** 24-hour activity as a scrub strip — drag across it like the sample chart. Same dot language, pointer-driven readout. */
-function HourlyDots({ selected, onSelect, t }: { selected: number; onSelect: (i: number) => void; t: Tokens }) {
+/** 24-hour activity as a scrub strip — drag across it like the sample chart. Same dot language, pointer-driven readout. Hours after now are unlit: the future has no steps yet, and selection clamps to the clock. */
+function HourlyDots({ selected, onSelect, t, nowHour, peakHour }: { selected: number; onSelect: (i: number) => void; t: Tokens; nowHour: number; peakHour: number }) {
   const max = Math.max(...HOURLY);
   const ROWS = 12;
   const ref = useRef<HTMLDivElement>(null);
@@ -308,16 +327,16 @@ function HourlyDots({ selected, onSelect, t }: { selected: number; onSelect: (i:
     if (!el) return;
     const r = el.getBoundingClientRect();
     const f = Math.min(1, Math.max(0, (clientX - r.left) / r.width));
-    onSelect(Math.min(23, Math.max(0, Math.floor(f * 24))));
+    onSelect(Math.min(nowHour, Math.max(0, Math.floor(f * 24))));
   };
   return (
     <div
       ref={ref}
       role="slider"
       tabIndex={0}
-      aria-label={`Steps by hour today, peak ${PEAK_HOUR}:00`}
+      aria-label={`Steps by hour today, peak ${peakHour}:00 so far`}
       aria-valuemin={0}
-      aria-valuemax={23}
+      aria-valuemax={nowHour}
       aria-valuenow={selected}
       aria-valuetext={`${String(selected).padStart(2, "0")}:00, ${HOURLY[selected].toLocaleString("en-US")} steps`}
       onPointerDown={(e) => {
@@ -329,7 +348,7 @@ function HourlyDots({ selected, onSelect, t }: { selected: number; onSelect: (i:
       }}
       onKeyDown={(e) => {
         if (e.key === "ArrowLeft") onSelect(Math.max(0, selected - 1));
-        if (e.key === "ArrowRight") onSelect(Math.min(23, selected + 1));
+        if (e.key === "ArrowRight") onSelect(Math.min(nowHour, selected + 1));
       }}
       className="relative select-none outline-none"
       style={{ touchAction: "none", minHeight: 132 }}
@@ -357,6 +376,7 @@ function HourlyDots({ selected, onSelect, t }: { selected: number; onSelect: (i:
         {HOURLY.map((v, i) => {
           const lit = Math.round((v / max) * ROWS);
           const isSel = i === selected;
+          const future = i > nowHour;
           return (
             <div key={i} className="flex flex-1 flex-col-reverse justify-start gap-[3px]">
               {Array.from({ length: ROWS }).map((_, r) => (
@@ -366,7 +386,7 @@ function HourlyDots({ selected, onSelect, t }: { selected: number; onSelect: (i:
                   style={{
                     width: isSel ? 4 : 3,
                     height: isSel ? 4 : 3,
-                    background: r < lit ? (isSel ? t.dot : t.dim) : t.faint,
+                    background: future ? t.faint : r < lit ? (isSel ? t.dot : t.dim) : t.faint,
                   }}
                 />
               ))}
@@ -389,11 +409,17 @@ function HourlyDots({ selected, onSelect, t }: { selected: number; onSelect: (i:
 function ActivityCard({ t, live }: { t: Tokens; live: StepsSnapshot | null }) {
   const [range, setRange] = useState<"day" | "week">("day");
   const reduced = useReducedMotion();
+  /* The chart lives on the device clock: future hours are unlit, the peak
+     counts elapsed hours only, and selection starts at now. */
+  const nowHour = new Date().getHours();
+  const elapsed = HOURLY.slice(0, nowHour + 1);
+  const peakHour = elapsed.indexOf(Math.max(...elapsed));
+  const peakSteps = Math.max(...elapsed).toLocaleString("en-US");
   const week = live?.days.map((d) => ({ d: dayInitial(d.date), v: d.steps })) ?? WEEK;
   const names = live?.days.map((d) => dayName(d.date)) ?? WEEK_DAYS;
   const today = week.length - 1;
   const [selDay, setSelDay] = useState(today);
-  const [selHour, setSelHour] = useState(PEAK_HOUR);
+  const [selHour, setSelHour] = useState(nowHour);
   const day = Math.min(selDay, week.length - 1);
   const avg = live ? Math.round(live.average7).toLocaleString("en-US") : WEEK_AVG;
   const bestIdx = week.reduce((bi, b, i) => (b.v > week[bi].v ? i : bi), 0);
@@ -469,7 +495,7 @@ function ActivityCard({ t, live }: { t: Tokens; live: StepsSnapshot | null }) {
             transition={{ duration: DUR.micro, ease: EASE_OUT }}
           >
             {range === "day" ? (
-              <HourlyDots t={t} selected={selHour} onSelect={tick(selHour, setSelHour)} />
+              <HourlyDots t={t} selected={Math.min(selHour, nowHour)} onSelect={tick(selHour, (n) => setSelHour(Math.min(n, nowHour)))} nowHour={nowHour} peakHour={peakHour} />
             ) : (
               <WeekDots week={week} today={week.length - 1} selected={day} onSelect={tick(day, setSelDay)} t={t} />
             )}
@@ -477,7 +503,7 @@ function ActivityCard({ t, live }: { t: Tokens; live: StepsSnapshot | null }) {
         </AnimatePresence>
       </div>
       <p className="mt-2.5 font-mono text-[10px] tracking-[0.14em]" style={{ color: t.dim }}>
-        {range === "day" ? `PEAK ${PEAK_HOUR}:00 · ${PEAK_STEPS} STEPS` : `AVG ${avg} · BEST ${best}`}
+        {range === "day" ? `PEAK ${peakHour}:00 · ${peakSteps} STEPS · SO FAR` : `AVG ${avg} · BEST ${best}`}
       </p>
       <p className="mt-1 font-mono text-[9px] tracking-[0.18em]" style={{ color: t.dim }}>
         {range === "day" ? "DRAG ACROSS THE CHART" : "TAP A DAY"}
@@ -623,17 +649,20 @@ function RouteMap({ reduced, t, privateZones, dist }: { reduced: boolean; t: Tok
       </g>
       {privateZones && (
         <>
-          {/* zone extent: dashed rings show how much of each end stays home */}
+          {/* zone extent: dashed rings show how much of each end stays home.
+              The label sits bottom-right, off the route, so it can never
+              overlap the trace, the KM rings, or the progress readout. */}
           <circle cx={ends.sx} cy={ends.sy} r={16} fill="none" stroke={t.dim} strokeWidth={1} strokeDasharray="3 4" opacity={0.8} />
           <circle cx={ends.ex} cy={ends.ey} r={16} fill="none" stroke={t.dim} strokeWidth={1} strokeDasharray="3 4" opacity={0.8} />
           <text
-            x={ends.sx < 80 ? ends.sx + 10 : ends.sx}
-            y={ends.sy + 20}
-            textAnchor={ends.sx < 80 ? "start" : "middle"}
+            x={350}
+            y={242}
+            textAnchor="end"
             fill={t.dim}
             fontSize={9}
             fontFamily="monospace"
             letterSpacing={2}
+            {...halo}
           >
             HOME ZONE HIDDEN
           </text>
@@ -712,7 +741,7 @@ function DateCard({ weekday, dayMonth, t }: { weekday: string; dayMonth: string;
  */
 function PedoWidget({ onOpen, shellId, t, live }: { onOpen: () => void; shellId?: string; t: Tokens; live: StepsSnapshot | null }) {
   const row = "flex items-baseline justify-between gap-2";
-  const today = live?.today ?? 162;
+  const today = live?.today ?? STEPS;
   const avg = live ? Math.round(live.average7) : 7442;
   const goal = live?.goal ?? GOAL;
   const todayPct = Math.max(0, Math.round((today / goal) * 100));
@@ -900,7 +929,7 @@ function DetailScreen({
         </Rise>
 
         <Rise index={1} className="grid grid-cols-3 gap-2.5 px-4 pt-2.5">
-          <Stat label="Distance" value={live ? (target * STRIDE_M / 1000).toFixed(1) : String(KM)} sub="KM" t={t} />
+          <Stat label="Distance" value={kmOf(target)} sub="KM" t={t} />
           <Stat label="Energy" value={String(KCAL)} sub="KCAL" t={t} />
           <Stat label="Active" value={String(ACTIVE_MIN)} sub="MIN" t={t} />
         </Rise>
@@ -1507,7 +1536,7 @@ export function PedometerExperience() {
   const [visits, setVisits] = useState(0);
   const [theme, setTheme] = useState<ThemeName>("dark");
   const [share, setShareState] = useState<null | ShareTarget>(null);
-  const [privacy, setPrivacy] = useState(true);
+  const [privacy, setPrivacy] = useState(false);
   /* Record mode (?clean=1): hides the floating chrome + floor glow + phone
      drop shadow so a screen recording composites over any presentation bg
      without a dark halo. Effect-set to avoid an SSR hydration mismatch. */

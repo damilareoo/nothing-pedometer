@@ -9,8 +9,8 @@ const src = readFileSync(join(__dirname, "experience.tsx"), "utf8");
  * renders — rendering lives on-device and on :3001, not in node.
  */
 describe("behavior wiring", () => {
-  it("keeps privacy zones on by default", () => {
-    expect(src).toContain("const [privacy, setPrivacy] = useState(true)");
+  it("keeps privacy zones off by default, arming on toggle", () => {
+    expect(src).toContain("const [privacy, setPrivacy] = useState(false)");
   });
 
   it("threads the privacy flag into the trace and every share card", () => {
@@ -74,8 +74,26 @@ describe("reduced motion", () => {
     expect(src).toContain("live?.days.map");
   });
 
+  it("reads one today everywhere, widget and hero can never disagree", () => {
+    const hits = src.match(/live\?\.today \?\? STEPS/g) ?? [];
+    expect(hits.length).toBeGreaterThanOrEqual(2);
+    expect(src).not.toContain("?? 162");
+  });
+
+  it("builds the sample day from one truth, elapsed bars sum to today", () => {
+    expect(src).toContain("RUN_STEPS");
+    expect(src).toContain("STEPS - RUN_STEPS");
+    expect(src).toContain("elapsed bars always sum to today");
+  });
+
+  it("syncs the day chart to the clock, no future peak", () => {
+    expect(src).toContain("nowHour");
+    expect(src).toContain("SO FAR");
+    expect(src).toContain("Math.min(n, nowHour)");
+  });
+
   it("derives every number in the prose from the fixtures", () => {
-    for (const token of ["GOAL_PCT", "GOAL_TO_GO", "WEEK_AVG", "WEEK_BEST", "PEAK_HOUR", "PEAK_STEPS", "STRIDE_M", "RUN.dist", "RUN.time", "RUN.kcal", "RUN.pace", "RUN.when"]) {
+    for (const token of ["GOAL_PCT", "GOAL_TO_GO", "WEEK_AVG", "WEEK_BEST", "STRIDE_M", "RUN.dist", "RUN.time", "RUN.kcal", "RUN.pace", "RUN.when"]) {
       expect(src).toContain(token);
     }
     for (const stale of ["AVG 7,305", "73%</span> OF 10,000", "2,716 TO GO", "Morning run · 06:42{"]) {
@@ -106,9 +124,10 @@ describe("reduced motion", () => {
     expect(src).not.toContain("Chevron");
   });
 
-  it("keeps the hidden-zone label inside the viewport", () => {
+  it("parks the hidden-zone label off the route, never overlapping it", () => {
     expect(src).toContain("HOME ZONE HIDDEN");
-    expect(src).toContain('ends.sx < 80 ? "start" : "middle"');
+    expect(src).toContain('textAnchor="end"');
+    expect(src).not.toContain('ends.sx < 80 ? "start" : "middle"');
   });
 
   it("shows the privacy toggle armed, like the OS master switch", () => {

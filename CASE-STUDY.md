@@ -12,10 +12,12 @@ restraint, the single red.
 ## The concept
 
 Extend the existing widget instead of replacing it. Keep its exact wording
-("162 / TOTAL TODAY / 1 %" over "7,442 / 7-DAY AVERAGE / 74 %", sampled
-from the device), then let one tap morph it into detail, detail into the
+("TOTAL TODAY" over "7-DAY AVERAGE", sampled from the device), then let one
+tap morph it into detail, detail into the
 run, and the run into shareable posters. Nothing new to learn; the story
-just continues.
+just continues. One today figure persists across every surface — widget,
+detail, and stats — and the day chart never shows hours that have not
+happened yet.
 
 ## Feature record and why each exists
 
