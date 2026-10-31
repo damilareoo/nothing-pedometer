@@ -6,7 +6,7 @@ const src = readFileSync(join(__dirname, "opengraph-image.tsx"), "utf8");
 
 /**
  * The link unfurl carries only the day's count as dot-matrix — no route,
- * no run copy, no labels. The count is live over the fixtures seam.
+ * no run copy, no labels. The count is live, with an honest no-feed fallback.
  */
 describe("opengraph image", () => {
   it("renders only the dot-matrix count", () => {

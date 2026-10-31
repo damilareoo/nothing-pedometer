@@ -73,7 +73,10 @@ edges blend instead of crushing.
 
 Without configuration the concept runs on fixtures. With it, the widget,
 hero, and week chart read your Health Connect feed through a proxy that
-keeps the secret server-side:
+keeps the secret server-side. The owner's feed is currently switched off in
+`components/nothing-pedometer/experience.tsx` (`LIVE_FEED_ENABLED`) while a
+replacement phone is sourced, so the deployed concept runs on fixtures
+labelled `SAMPLE` — never a dash:
 
 ```bash
 cp .env.example .env.local   # then fill in your values
@@ -89,9 +92,17 @@ as Environment Variables; if a secret ever appears in chat, screenshots, or
 logs, rotate it at the source and update both ends. `GET /api/steps` on this
 app returns `503` when unconfigured and never leaks the secret.
 
-Upstream shape: `{ today, goal, average7, updatedAt, days: [{ date,
-steps | null }] }`. Null days (no data yet) render as zeros. The parser
-(`lib/steps.ts`) clamps everything to safe integers and rejects garbage.
+Upstream shape: `{ today: number | null, goal, average7, reportedDays,
+updatedAt, days: [{ date, steps | null }], hours: number[] | null,
+lastReported }`. The parser (`lib/steps.ts`) clamps everything to safe
+integers, rejects garbage, and preserves nulls: `today: null` means no
+report, so the widget shows a dash and `NO REPORT TODAY` — never a fake
+zero. Null week days render hollow, not as zero-height bars. `average7` is
+the mean of reported days in the trailing seven days; `reportedDays` is the
+denominator and the detail chart states it (`4/7 REPORTED`). `hours` is
+null when the day has no interval fine enough to support an honest hourly
+shape. `updatedAt` is the last step count, so the UI says `LAST STEP`, not
+`SYNCED`; a count older than two hours is labelled `NO NEW STEPS`.
 
 ## Docs
 
@@ -105,14 +116,19 @@ Live link: `https://nothing-pedometer.vercel.app` — no scroll, the phone
 frame fits the window like a SwiftUI preview. Where to tap:
 
 1. Home shows `TAP THE WIDGET ↑` until the first tap — tap the step widget.
-2. Detail counts up your live steps; toggle `DAY/WEEK`; tap `TODAY'S RUN`.
+2. Detail counts up the live steps; toggle `DAY/WEEK`. The week is the
+   truthful view when the day has no fine-grained intervals: hollow days
+   mean no report. Tap `MORNING RUN` when today has steps.
 3. Run screen: flip the privacy zone, watch the trace mask; tap `SHARE`.
 4. Sheet → pick a platform → poster preview with canvas picker (Onyx, Bone,
    Signal, Volt, Dusk, photo). X/WhatsApp/Telegram open real share
    targets; Instagram copies the caption (it accepts no direct web shares).
 
-Step counts are the owner's live Health Connect feed; everything else is a
-curated sample dataset until the feed gains a run object (stated, not hidden).
+Step counts are fixtures while the feed is switched off (see above), and
+were the owner's live Health Connect feed when it ran. A day with no report
+shows a dash, never a fake zero; when the feed is unreachable the fixtures
+are explicitly labelled `SAMPLE`. Everything else is a curated sample
+dataset until the feed gains a run object (stated, not hidden).
 
 ## Case study (short)
 

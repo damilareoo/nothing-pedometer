@@ -21,7 +21,7 @@ describe("behavior wiring", () => {
   });
 
   it("counts the hero steps up on first visit, never statically", () => {
-    expect(src).toContain("useCountUp(target, visits)");
+    expect(src).toContain("useCountUp(target ?? 0, visits)");
     expect(src).toContain("useLiveSteps()");
   });
 });
@@ -70,20 +70,38 @@ describe("reduced motion", () => {
 
   it("feeds the widget, hero, and week chart from the live snapshot", () => {
     expect(src).toContain('fetch("/api/steps"');
-    expect(src).toContain("live?.today ?? STEPS");
-    expect(src).toContain("live?.days.map");
+    expect(src).toContain("live?.today ?? null");
+    expect(src).toContain("live.days.map");
+    expect(src).toContain("parseStepsPayload");
   });
 
   it("reads one today everywhere, widget and hero can never disagree", () => {
-    const hits = src.match(/live\?\.today \?\? STEPS/g) ?? [];
+    const hits = src.match(/live\?\.today \?\? null/g) ?? [];
     expect(hits.length).toBeGreaterThanOrEqual(2);
     expect(src).not.toContain("?? 162");
+    expect(src).not.toContain("live?.today ?? STEPS");
+  });
+
+  it("keeps unreported, stale, and sample states distinct", () => {
+    for (const token of ["\"unreported\"", "\"stale\"", "\"offline\"", "NO NEW STEPS", "SAMPLE DATA", "LAST STEP", "NO REPORT TODAY"]) {
+      expect(src).toContain(token);
+    }
+    expect(src).toContain("readingStatus");
+    expect(src).toContain("ageLabel");
+    expect(src).toContain("reportedDays}/7 REPORTED");
   });
 
   it("builds the sample day from one truth, elapsed bars sum to today", () => {
     expect(src).toContain("RUN_STEPS");
     expect(src).toContain("STEPS - RUN_STEPS");
     expect(src).toContain("elapsed bars always sum to today");
+  });
+
+  it("detects the run from the data, converts distance and pace from steps", () => {
+    expect(src).toContain("detectRunWindow");
+    expect(src).toContain("RUN_WINDOW_STEPS");
+    expect(src).toContain("kmOf(RUN_WINDOW_STEPS)");
+    expect(src).not.toContain('dist: "5.2"');
   });
 
   it("syncs the day chart to the clock, no future peak", () => {
@@ -93,7 +111,7 @@ describe("reduced motion", () => {
   });
 
   it("derives every number in the prose from the fixtures", () => {
-    for (const token of ["GOAL_PCT", "GOAL_TO_GO", "WEEK_AVG", "WEEK_BEST", "STRIDE_M", "RUN.dist", "RUN.time", "RUN.kcal", "RUN.pace", "RUN.when"]) {
+    for (const token of ["GOAL_PCT", "GOAL_TO_GO", "WEEK_AVG", "WEEK_BEST", "STRIDE_M", "RUN_DIST", "RUN_PACE", "RUN.time", "RUN.kcal", "RUN.when"]) {
       expect(src).toContain(token);
     }
     for (const stale of ["AVG 7,305", "73%</span> OF 10,000", "2,716 TO GO", "Morning run · 06:42{"]) {
@@ -289,7 +307,7 @@ describe("reduced motion", () => {
   it("frames the concept as a Phone 2a, measured off the official render", () => {
     expect(src).toContain("Nothing Phone 2a pedometer concept");
     expect(src).toContain("sm:aspect-[76.32/161.74]");
-    expect(src).toContain("sm:w-[min(382px,calc((100dvh-48px)*0.4719),calc(100vw-48px))]");
+    expect(src).toContain("sm:w-[max(320px,min(382px,calc((100dvh-48px)*0.4719),calc(100vw-48px)))]");
     expect(src).toContain("top-[2.8%]");
     expect(src).toContain("sm:rounded-[42px]");
     expect(src).toContain("sm:rounded-[27px]");
@@ -306,7 +324,7 @@ describe("reduced motion", () => {
     expect(src).not.toContain("sm:pt-[52px]");
     expect(src).toContain("top-[2.8%]");
     expect(src).toContain("relative h-dvh w-full sm:aspect-");
-    expect(src).toContain("whitespace-nowrap font-mono text-[17px]");
+    expect(src).toContain("whitespace-nowrap font-mono text-[16px]");
   });
 
   it("keeps in-screen headers at base padding — the hole needs no clearance", () => {
@@ -326,7 +344,7 @@ describe("reduced motion", () => {
 
   it("names the run concept without promising today's data", () => {
     expect(src).toContain("MORNING RUN ·");
-    expect(src).toContain('aria-label="View morning run"');
+    expect(src).toContain('run ? "View morning run"');
     expect(src).not.toContain("View today's run");
     expect(src).not.toContain("TODAY&apos;S RUN");
     expect(src).not.toContain("SAMPLE RUN ·");
@@ -335,7 +353,8 @@ describe("reduced motion", () => {
   it("scales the workout off live steps so the daily read and the km reconcile", () => {
     expect(src).toContain("function runFigures");
     expect(src).toContain("RUN_BASE_SEC");
-    expect(src).toContain("STRIDE_M / 1000");
+    expect(src).toContain("STRIDE_M) / 1000");
     expect(src).toContain("run={run}");
+    expect(src).toContain("live.today === null");
   });
 });

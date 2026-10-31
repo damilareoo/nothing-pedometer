@@ -4,18 +4,19 @@ import { parseStepsPayload } from "@/lib/steps";
 
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
-export const alt = "Today's step count in dot-matrix";
+export const alt = "Step count in dot-matrix";
 /** Fresh hourly: link unfurls should carry the day being shared. */
 export const revalidate = 3600;
 
 /**
- * Social card: nothing but the day's count, drawn as dot-matrix.
- * Live today over the same fixtures seam as the widget — the feed resolves
- * in the usual case, fixtures stand in only when it cannot.
+ * Social card: the count inside the product's own widget card — TOTAL TODAY
+ * with the one red dot. If today has no report, the card carries the last
+ * reported day and says so; if the feed is down it shows a dash, never a
+ * fixture number pretending to be today's walk.
  */
-async function todayCount(): Promise<string> {
+async function todayCard(): Promise<{ count: string; caption: string }> {
   try {
-    const url = process.env.STEPS_API_URL ?? "https://damilareoo-xyz.vercel.app/api/steps";
+    const url = process.env.STEPS_API_URL ?? "https://damilare.works/api/steps";
     const secret = process.env.STEPS_API_SECRET;
     if (!secret) throw new Error("no secret");
     const res = await fetch(url, {
@@ -25,15 +26,24 @@ async function todayCount(): Promise<string> {
     if (!res.ok) throw new Error("feed rejected");
     const snap = parseStepsPayload(await res.json().catch(() => null));
     if (!snap) throw new Error("feed malformed");
-    return snap.today.toLocaleString("en-US");
+    if (snap.today !== null) {
+      return { count: snap.today.toLocaleString("en-US"), caption: "TOTAL TODAY" };
+    }
+    if (snap.lastReported) {
+      const day = new Date(`${snap.lastReported.date}T12:00:00+01:00`)
+        .toLocaleDateString("en-GB", { day: "2-digit", month: "short" })
+        .toUpperCase();
+      return { count: snap.lastReported.steps.toLocaleString("en-US"), caption: `LAST STEP ${day}` };
+    }
+    return { count: "--", caption: "NO SYNC" };
   } catch {
-    return (7284).toLocaleString("en-US");
+    return { count: "--", caption: "NO SYNC" };
   }
 }
 
 export default async function OGImage() {
-  const count = await todayCount();
-  const pitch = 28;
+  const { count, caption } = await todayCard();
+  const pitch = 26;
   const width = (count.length * 6 - 1) * pitch;
   return new ImageResponse(
     (
@@ -44,14 +54,39 @@ export default async function OGImage() {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          background: "#0B0B0D",
+          background: "#101014",
         }}
       >
-        <svg width={width} height={7 * pitch} viewBox={`0 0 ${width} ${7 * pitch}`}>
-          {dotTextDots(count, { pitch }).map((p, i) => (
-            <circle key={i} cx={p.cx} cy={p.cy} r={pitch * 0.34} fill="#FFFFFF" opacity={p.lit ? 1 : 0.08} />
-          ))}
-        </svg>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            background: "#1B1A1F",
+            borderRadius: 48,
+            padding: "64px 96px",
+          }}
+        >
+          <svg width={width} height={7 * pitch} viewBox={`0 0 ${width} ${7 * pitch}`}>
+            {dotTextDots(count, { pitch }).map((p, i) => (
+              <circle key={i} cx={p.cx} cy={p.cy} r={pitch * 0.34} fill="#FFFFFF" opacity={p.lit ? 1 : 0.08} />
+            ))}
+          </svg>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              marginTop: 28,
+              fontSize: 28,
+              letterSpacing: 8,
+              color: "rgba(255,255,255,0.6)",
+              fontFamily: "monospace",
+            }}
+          >
+            {caption}&nbsp;&nbsp;
+            <span style={{ width: 18, height: 18, borderRadius: 9, background: "#E11A1B" }} />
+          </div>
+        </div>
       </div>
     ),
     { ...size },

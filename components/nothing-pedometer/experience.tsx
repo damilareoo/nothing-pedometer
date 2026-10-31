@@ -7,7 +7,7 @@ import { THEMES, type ThemeName, type Tokens } from "@/lib/theme";
 import { SHARE_CANVASES, photoCanvas, type ShareCanvas } from "@/lib/share-canvases";
 import { sharePosterPNG, sharePosterSVG } from "@/lib/share-poster";
 import { ROUTE } from "@/lib/route";
-import type { StepsSnapshot } from "@/lib/steps";
+import { lagosToday, parseStepsPayload, readingStatus, type StepsSnapshot } from "@/lib/steps";
 import { ArrowLeft, ArrowRight, CameraIcon, GearIcon, InstagramIcon, MessageIcon, PhoneIcon, SearchIcon, TelegramIcon, WhatsAppIcon, XIcon } from "./icons";
 import { DotText } from "./dot-matrix";
 
@@ -34,6 +34,14 @@ import { DotText } from "./dot-matrix";
 
 const STEPS = 7284;
 const GOAL = 10000;
+
+/**
+ * The counting phone is gone (Phone 2a stolen), so the feed can only answer
+ * "nothing reported today" — which is true but reads as a broken screen.
+ * Until a device posts again, the fixtures carry every face. Flip to true
+ * when the feed is back; no other change needed.
+ */
+const LIVE_FEED_ENABLED = false;
 const GOAL_PCT = Math.round((STEPS / GOAL) * 100);
 const GOAL_TO_GO = (GOAL - STEPS).toLocaleString("en-US");
 const GOAL_FMT = GOAL.toLocaleString("en-US");
@@ -58,11 +66,15 @@ const WEEK = [
 
 /** Caption math, derived so the words can never disagree with the columns. */
 const WEEK_DAYS = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
-const WEEK_AVG = Math.round(WEEK.reduce((a, b) => a + b.v, 0) / WEEK.length).toLocaleString("en-US");
+const WEEK_AVG_NUM = Math.round(WEEK.reduce((a, b) => a + b.v, 0) / WEEK.length);
+const WEEK_AVG = WEEK_AVG_NUM.toLocaleString("en-US");
 const BEST_IDX = WEEK.reduce((bi, b, i) => (b.v > WEEK[bi].v ? i : bi), 0);
 const WEEK_BEST = `${WEEK_DAYS[BEST_IDX]} ${WEEK[BEST_IDX].v.toLocaleString("en-US")}`;
 
-const RUN = { dist: "5.2", time: "32:14", pace: "6'12''", kcal: "268", when: "06:42" };
+/** Session anchors: start, duration, and energy come from the session record
+    (a live ExerciseSession tomorrow, the curated record today). Distance and
+    pace never live here — they convert from detected steps. */
+const RUN = { time: "32:14", kcal: "268", when: "06:42" };
 /** The run is a curated sample until the feed serves ExerciseSessions. */
 const RUN_SAMPLE = true;
 /** The curated workout's own anchors: 32:14 over 5.2 km burns 268 kcal. */
@@ -71,12 +83,32 @@ const RUN_BASE_DIST = 5.2;
 const RUN_BASE_KCAL = 268;
 
 /**
- * One truth for the sample day: today's STEPS contain the 06:42 morning run.
- * Hours 06-07 carry the run's steps; elapsed bars always sum to today.
- * Later hours keep a plausible shape; the clock masks what has not happened
- * yet, and the visible peak counts elapsed hours only.
+ * Run detection: the biggest contiguous block of sustained effort in the
+ * morning window (04:00–12:00). Anything above the brisk-effort floor for
+ * consecutive hours is the run; anything else is the day. Steps inside the
+ * window are the run's steps — distance, pace, and energy all convert from
+ * there, so the run can never disagree with the day that contains it. A live
+ * ExerciseSession will supply this window (plus exact start/duration/kcal);
+ * until then the anchors below stand in as the session record.
  */
+const RUN_EFFORT_FLOOR = 500;
+function detectRunWindow(hours: number[]): { start: number; end: number } | null {
+  let best: { start: number; end: number } | null = null;
+  let cur: { start: number; end: number } | null = null;
+  for (let h = 4; h <= 12; h++) {
+    if (hours[h] > RUN_EFFORT_FLOOR) {
+      cur = cur ?? { start: h, end: h + 1 };
+      cur.end = h + 1;
+    } else {
+      if (cur && (!best || cur.end - cur.start > best.end - best.start)) best = cur;
+      cur = null;
+    }
+  }
+  if (cur && (!best || cur.end - cur.start > best.end - best.start)) best = cur;
+  return best;
+}
 const RUN_STEPS = Math.round((RUN_BASE_DIST * 1000) / STRIDE_M);
+/* Session shape: the run's steps land in its hours — elapsed bars always sum to today. */
 const RUN_H6_FRAC = ((60 - Number(RUN.when.split(":")[1])) * 60) / RUN_BASE_SEC;
 const RUN_H6 = Math.round(RUN_STEPS * RUN_H6_FRAC);
 const RUN_H7 = RUN_STEPS - RUN_H6;
@@ -90,20 +122,45 @@ const HOURLY = [
   310, 520, 280, 190, 340, 410, 860, 1240, 540, 220, 90, 20, 0,
 ];
 
+/** The detected run: window from the data, figures converted from its steps.
+    Distance is pure conversion (steps × stride); pace is session duration
+    over that distance. Data always wins over anchors. */
+const RUN_WINDOW = detectRunWindow(HOURLY) ?? { start: 6, end: 8 };
+const RUN_WINDOW_STEPS = HOURLY.slice(RUN_WINDOW.start, RUN_WINDOW.end).reduce((a, b) => a + b, 0);
+const RUN_DIST = kmOf(RUN_WINDOW_STEPS);
+const RUN_PACE_SEC = RUN_BASE_SEC / parseFloat(RUN_DIST);
+const RUN_PACE = (() => {
+  const m = Math.floor(RUN_PACE_SEC / 60);
+  let s = Math.round(RUN_PACE_SEC % 60);
+  let mm = m;
+  if (s === 60) {
+    mm += 1;
+    s = 0;
+  }
+  return `${mm}'${String(s).padStart(2, "0")}''`;
+})();
+
 function fmtDuration(totalSec: number): string {
   const m = Math.floor(totalSec / 60);
   return `${m}:${String(Math.round(totalSec % 60)).padStart(2, "0")}`;
 }
 
+type RunFigures = { dist: string; time: string; kcal: string };
+
 /**
  * The day's distance is live (steps × stride); the workout scales with it
  * so pace, time, and energy always reconcile with the daily read. Offline
- * the curated 5.2 km set returns exactly. Time/kcal stay sample-framed
+ * the detected window converts exactly. Time/kcal stay session-anchored
  * (badged wherever shown) until ExerciseSessions land.
+ *
+ * `fallback` is for the run/share screens, which are curated samples by
+ * definition. The detail screen passes false: a day nobody reported must not
+ * grow a run button just because the fixture has one.
  */
-function runFigures(live: StepsSnapshot | null): { dist: string; time: string; kcal: string } {
-  if (!live) return { dist: RUN.dist, time: RUN.time, kcal: RUN.kcal };
-  const dist = live.today * STRIDE_M / 1000;
+function runFigures(live: StepsSnapshot | null, fallback = true): RunFigures | null {
+  const sample: RunFigures = { dist: RUN_DIST, time: RUN.time, kcal: RUN.kcal };
+  if (!live || live.today === null || live.today <= 0) return fallback ? sample : null;
+  const dist = (live.today * STRIDE_M) / 1000;
   const f = dist / RUN_BASE_DIST;
   return {
     dist: dist.toFixed(1),
@@ -133,11 +190,11 @@ const FASTEST_SPLIT = SPLITS[SPLIT_SECS.indexOf(Math.min(...SPLIT_SECS))];
 const SPLIT_LINE = `FASTEST KM ${FASTEST_SPLIT.km} · ${FASTEST_SPLIT.pace} · HR ${SPLITS[0].hr}→${SPLITS[SPLITS.length - 1].hr}`;
 const ELEV_PEAK_KM = Math.max(
   1,
-  Math.round(((ELEV.indexOf(Math.max(...ELEV)) + 0.5) / ELEV.length) * RUN_BASE_DIST),
+  Math.round(((ELEV.indexOf(Math.max(...ELEV)) + 0.5) / ELEV.length) * parseFloat(RUN_DIST)),
 );
 const ELEV_LINE = `PEAK NEAR KM ${String(ELEV_PEAK_KM).padStart(2, "0")}`;
 
-const MICRO = "font-mono text-[10px] uppercase tracking-[0.22em]";
+const MICRO = "whitespace-nowrap font-mono text-[10px] uppercase tracking-[0.22em]";
 const SANS_LABEL = "text-[14px] font-medium";
 
 /** Send-time stamp: the message goes out now, so it reads now. */
@@ -149,13 +206,21 @@ function nowHM(): string {
 /* ---------------------------------- hooks --------------------------------- */
 
 function useNow(): { time: string; dateLine: string; weekday: string; dayMonth: string } {
-  const WDays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   const fmt = (d: Date) => {
-    const wd = WDays[d.getDay()];
-    const dm = `${d.getDate()} ${months[d.getMonth()]}`;
+    const parts = new Intl.DateTimeFormat("en-GB", {
+      timeZone: "Africa/Lagos",
+      weekday: "short",
+      day: "2-digit",
+      month: "short",
+      hour: "2-digit",
+      minute: "2-digit",
+      hourCycle: "h23",
+    }).formatToParts(d);
+    const get = (type: Intl.DateTimeFormatPartTypes) => parts.find((p) => p.type === type)?.value ?? "";
+    const wd = get("weekday");
+    const dm = `${get("day")} ${get("month")}`;
     return {
-      time: `${d.getHours()}:${String(d.getMinutes()).padStart(2, "0")}`,
+      time: `${get("hour")}:${get("minute")}`,
       dateLine: `${wd} · ${dm}`,
       weekday: wd,
       dayMonth: dm,
@@ -170,24 +235,102 @@ function useNow(): { time: string; dateLine: string; weekday: string; dayMonth: 
   return now;
 }
 
+/* ------------------------------- feed state -------------------------------- */
+
+type FeedStatus = "loading" | "live" | "stale" | "unreported" | "offline";
+type Feed = { live: StepsSnapshot | null; status: FeedStatus };
+
+/** Lagos wall-clock helpers: the feed's day is the owner's day, not the viewer's. */
+function lagosHM(ms: number): string {
+  return new Date(ms).toLocaleTimeString("en-GB", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+    timeZone: "Africa/Lagos",
+  });
+}
+function lagosShortDate(ms: number): string {
+  return new Intl.DateTimeFormat("en-GB", {
+    weekday: "short",
+    day: "2-digit",
+    month: "short",
+    timeZone: "Africa/Lagos",
+  })
+    .format(new Date(ms))
+    .toUpperCase()
+    .replace(",", "");
+}
+function lagosHour(now = new Date()): number {
+  return (
+    Number(
+      new Intl.DateTimeFormat("en-GB", {
+        hour: "2-digit",
+        hourCycle: "h23",
+        timeZone: "Africa/Lagos",
+      }).format(now),
+    ) % 24
+  );
+}
+/** How long ago the feed last counted, in the shortest honest form. */
+function ageLabel(ms: number): string {
+  const mins = Math.max(1, Math.round((Date.now() - ms) / 60_000));
+  if (mins < 60) return `${mins}M AGO`;
+  const hours = Math.round(mins / 60);
+  if (hours < 24) return `${hours}H AGO`;
+  return `${Math.round(hours / 24)}D AGO`;
+}
+/** The status line under the hero: date-aware, so yesterday cannot read as now. */
+function syncLine(live: StepsSnapshot | null, status: FeedStatus): string {
+  if (status === "offline") return "SAMPLE DATA · FEED OFFLINE";
+  if (status === "loading") return "SAMPLE DATA · CONNECTING";
+  if (!live) return "NO FEED";
+  if (!live.updatedAt) return "STEP TIME UNKNOWN";
+  const time = lagosHM(live.updatedAt);
+  if (lagosToday(new Date(live.updatedAt)) === lagosToday()) {
+    return status === "stale" ? `LAST STEP ${time} · ${ageLabel(live.updatedAt)}` : `LAST STEP ${time}`;
+  }
+  return `LAST STEP ${lagosShortDate(live.updatedAt)} · ${time}`;
+}
+/** The one line under the widget: honest about samples, quiet when live. */
+function homeNote(live: StepsSnapshot | null, status: FeedStatus, fresh: boolean): string {
+  if (status === "offline") return "SAMPLE DATA · TAP THE WIDGET ↑";
+  if (status === "loading") return "SAMPLE DATA · CONNECTING";
+  if (status === "unreported") return "NO REPORT TODAY";
+  if (status === "stale") return "NO NEW STEPS";
+  return fresh ? "TAP THE WIDGET ↑" : "·";
+}
+
 /**
- * Live Health Connect snapshot via our own proxy (`/api/steps` keeps the
- * Bearer secret server-side). Null until the first fetch resolves or when
- * offline — every consumer falls back to the fixtures, never to blanks.
+ * Live feed via our own proxy (`/api/steps` keeps the Bearer secret
+ * server-side). The status is as important as the snapshot: `unreported`
+ * means the feed is healthy but today has no report, `offline` means the
+ * fixtures are standing in, and `stale` means today reported but has not
+ * updated recently.
  */
-function useLiveSteps(): StepsSnapshot | null {
-  const [snap, setSnap] = useState<StepsSnapshot | null>(null);
+function useLiveSteps(): Feed {
+  const [feed, setFeed] = useState<Feed>({
+    live: null,
+    status: LIVE_FEED_ENABLED ? "loading" : "offline",
+  });
   useEffect(() => {
+    if (!LIVE_FEED_ENABLED) return;
     let alive = true;
     const load = async () => {
       try {
         const res = await fetch("/api/steps", { cache: "no-store" });
-        if (!res.ok) return;
+        if (!res.ok) throw new Error("feed rejected");
         const json = await res.json();
-        if (!alive || !json || typeof json.today !== "number" || !Array.isArray(json.days)) return;
-        setSnap(json as StepsSnapshot);
+        const snap = parseStepsPayload(json);
+        if (!alive) return;
+        if (!snap) throw new Error("feed malformed");
+        setFeed({ live: snap, status: readingStatus(snap) });
       } catch {
-        /* offline — fixtures stand in */
+        if (!alive) return;
+        /* A failed poll never erases a good reading; it simply ages it. */
+        setFeed((prev) => ({
+          live: prev.live,
+          status: prev.live ? readingStatus(prev.live) : "offline",
+        }));
       }
     };
     load();
@@ -197,7 +340,7 @@ function useLiveSteps(): StepsSnapshot | null {
       clearInterval(id);
     };
   }, []);
-  return snap;
+  return feed;
 }
 
 /** Weekday initial for a YYYY-MM-DD day, noon-anchored against TZ edges. */
@@ -276,15 +419,20 @@ function DottedLine({ frac, total = 30, t }: { frac: number; total?: number; t: 
   );
 }
 
-/** 7-day activity as tappable dot columns. Tap a day to read it — today stays marked red, like the OS live position. */
-function WeekDots({ week, today, selected, onSelect, t }: { week: { d: string; v: number }[]; today: number; selected: number; onSelect: (i: number) => void; t: Tokens }) {
-  const max = Math.max(...week.map((w) => w.v), 1);
-  const best = week.reduce((bi, b, i) => (b.v > week[bi].v ? i : bi), 0);
+/** 7-day activity as tappable dot columns. Tap a day to read it — today stays marked red, like the OS live position. A hollow column is a day nobody reported, not a zero. */
+function WeekDots({ week, today, selected, onSelect, t }: { week: { d: string; v: number | null }[]; today: number; selected: number; onSelect: (i: number) => void; t: Tokens }) {
+  const max = Math.max(...week.map((w) => w.v ?? 0), 1);
+  const best = week.reduce((bi, b, i) => {
+    const current = week[bi]?.v;
+    if (b.v === null) return bi;
+    return current === null || current === undefined || b.v > current ? i : bi;
+  }, 0);
+  const bestValue = week[best]?.v;
   const ROWS = 14;
   return (
-    <div className="flex items-stretch justify-between gap-1" role="img" aria-label={`Steps this week, best ${week[best].v.toLocaleString("en-US")}`}>
+    <div className="flex items-stretch justify-between gap-1" role="img" aria-label={`Steps this week, best ${bestValue === null || bestValue === undefined ? "not reported" : bestValue.toLocaleString("en-US")}`}>
       {week.map((b, i) => {
-        const lit = Math.max(1, Math.round((b.v / max) * ROWS));
+        const lit = b.v === null ? 0 : Math.max(1, Math.round((b.v / max) * ROWS));
         const isToday = i === today;
         const isSel = i === selected;
         return (
@@ -293,7 +441,7 @@ function WeekDots({ week, today, selected, onSelect, t }: { week: { d: string; v
             type="button"
             onClick={() => onSelect(i)}
             aria-pressed={isSel}
-            aria-label={`${b.d} ${b.v.toLocaleString("en-US")} steps${isToday ? ", today" : ""}`}
+            aria-label={`${b.d} ${b.v === null ? "not reported" : `${b.v.toLocaleString("en-US")} steps`}${isToday ? ", today" : ""}`}
             className="flex min-h-[110px] flex-1 flex-col items-center justify-end gap-2 rounded-[12px] pb-1 pt-2"
             style={{ background: isSel ? t.faint : "transparent" }}
           >
@@ -318,8 +466,8 @@ function WeekDots({ week, today, selected, onSelect, t }: { week: { d: string; v
 }
 
 /** 24-hour activity as a scrub strip — drag across it like the sample chart. Same dot language, pointer-driven readout. Hours after now are unlit: the future has no steps yet, and selection clamps to the clock. */
-function HourlyDots({ selected, onSelect, t, nowHour, peakHour }: { selected: number; onSelect: (i: number) => void; t: Tokens; nowHour: number; peakHour: number }) {
-  const max = Math.max(...HOURLY);
+function HourlyDots({ hours, selected, onSelect, t, nowHour, peakHour }: { hours: number[]; selected: number; onSelect: (i: number) => void; t: Tokens; nowHour: number; peakHour: number }) {
+  const max = Math.max(...hours, 1);
   const ROWS = 12;
   const ref = useRef<HTMLDivElement>(null);
   const pick = (clientX: number) => {
@@ -338,7 +486,7 @@ function HourlyDots({ selected, onSelect, t, nowHour, peakHour }: { selected: nu
       aria-valuemin={0}
       aria-valuemax={nowHour}
       aria-valuenow={selected}
-      aria-valuetext={`${String(selected).padStart(2, "0")}:00, ${HOURLY[selected].toLocaleString("en-US")} steps`}
+      aria-valuetext={`${String(selected).padStart(2, "0")}:00, ${(hours[selected] ?? 0).toLocaleString("en-US")} steps`}
       onPointerDown={(e) => {
         (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
         pick(e.clientX);
@@ -373,7 +521,7 @@ function HourlyDots({ selected, onSelect, t, nowHour, peakHour }: { selected: nu
           className="pointer-events-none absolute bottom-0 top-0 w-px"
           style={{ background: t.faint, left: `${((selected + 0.5) / 24) * 100}%` }}
         />
-        {HOURLY.map((v, i) => {
+        {hours.map((v, i) => {
           const lit = Math.round((v / max) * ROWS);
           const isSel = i === selected;
           const future = i > nowHour;
@@ -405,27 +553,46 @@ function HourlyDots({ selected, onSelect, t, nowHour, peakHour }: { selected: nu
   );
 }
 
-/** One chart, two ranges — the sample's scrub + pill switcher, in Nothing's dot language. */
-function ActivityCard({ t, live }: { t: Tokens; live: StepsSnapshot | null }) {
-  const [range, setRange] = useState<"day" | "week">("day");
+/** One chart, two ranges — the sample's scrub + pill switcher, in Nothing's dot language. The day view is real only when the feed stored intervals for today; otherwise it says so and offers the week, which is always real. */
+function ActivityCard({ t, live, status }: { t: Tokens; live: StepsSnapshot | null; status: FeedStatus }) {
+  const sample = status === "loading" || status === "offline";
+  const todayKey = lagosToday();
+  const hoursToday = !sample && live?.today !== null && live?.lastReported?.date === todayKey;
+  const hours = sample ? HOURLY : hoursToday ? live?.hours ?? null : null;
+  const week = sample || !live ? WEEK : live.days.map((d) => ({ d: dayInitial(d.date), v: d.steps }));
+  const names = sample || !live ? WEEK_DAYS : live.days.map((d) => dayName(d.date));
+  const [range, setRange] = useState<"day" | "week">(hours ? "day" : "week");
   const reduced = useReducedMotion();
-  /* The chart lives on the device clock: future hours are unlit, the peak
+  /* The chart lives on the owner's clock: future hours are unlit, the peak
      counts elapsed hours only, and selection starts at now. */
-  const nowHour = new Date().getHours();
-  const elapsed = HOURLY.slice(0, nowHour + 1);
-  const peakHour = elapsed.indexOf(Math.max(...elapsed));
-  const peakSteps = Math.max(...elapsed).toLocaleString("en-US");
-  const week = live?.days.map((d) => ({ d: dayInitial(d.date), v: d.steps })) ?? WEEK;
-  const names = live?.days.map((d) => dayName(d.date)) ?? WEEK_DAYS;
+  const nowHour = lagosHour();
+  const elapsed = hours ? hours.slice(0, nowHour + 1) : [];
+  const peakHour = elapsed.length ? elapsed.indexOf(Math.max(...elapsed)) : 0;
+  const peakSteps = elapsed.length ? Math.max(...elapsed).toLocaleString("en-US") : "—";
   const today = week.length - 1;
   const [selDay, setSelDay] = useState(today);
   const [selHour, setSelHour] = useState(nowHour);
   const day = Math.min(selDay, week.length - 1);
-  const avg = live ? Math.round(live.average7).toLocaleString("en-US") : WEEK_AVG;
-  const bestIdx = week.reduce((bi, b, i) => (b.v > week[bi].v ? i : bi), 0);
-  const best = live
-    ? `${dayName(live.days[bestIdx].date)} ${week[bestIdx].v.toLocaleString("en-US")}`
-    : WEEK_BEST;
+  const avg = live && !sample ? live.average7.toLocaleString("en-US") : WEEK_AVG;
+  const bestIdx = week.reduce((bi, b, i) => {
+    const current = week[bi]?.v;
+    if (b.v === null) return bi;
+    return current === null || current === undefined || b.v > current ? i : bi;
+  }, 0);
+  const bestValue = week[bestIdx]?.v ?? null;
+  const best = live && !sample ? (bestValue === null ? "—" : `${names[bestIdx]} ${bestValue.toLocaleString("en-US")}`) : WEEK_BEST;
+  const hourValue = hours ? hours[Math.min(selHour, 23)] : null;
+  const dayValue = week[day]?.v ?? null;
+  const readout = range === "day" ? hourValue : dayValue;
+  const readoutText = readout === null ? "--" : readout.toLocaleString("en-US");
+  const unit =
+    range === "day"
+      ? "STEPS"
+      : day === today
+        ? `${names[day]} · TODAY`
+        : day === bestIdx && bestValue !== null
+          ? `${names[day]} · BEST`
+          : names[day];
   const tick = (i: number, set: (n: number) => void) => (n: number) => {
     if (n !== i) {
       set(n);
@@ -439,9 +606,16 @@ function ActivityCard({ t, live }: { t: Tokens; live: StepsSnapshot | null }) {
   return (
     <div className="rounded-[20px] p-[18px]" style={{ background: t.card, border: `1px solid ${t.edge}`, boxShadow: t.pop }}>
       <div className="flex items-center justify-between gap-2">
-        <p className={SANS_LABEL} style={{ color: t.dim }}>
-          Activity
-        </p>
+        <div className="flex items-center gap-2">
+          <p className={SANS_LABEL} style={{ color: t.dim }}>
+            Activity
+          </p>
+          {sample && (
+            <span className="rounded-full px-2 py-0.5 font-mono text-[8px] tracking-[0.16em]" style={{ background: t.faint, color: t.dim }}>
+              SAMPLE
+            </span>
+          )}
+        </div>
         <div className="flex rounded-full p-[3px]" style={{ background: t.faint }} role="group" aria-label="Chart range">
           {(["day", "week"] as const).map((r) => {
             const active = range === r;
@@ -472,17 +646,17 @@ function ActivityCard({ t, live }: { t: Tokens; live: StepsSnapshot | null }) {
       <div className="flex items-end justify-between gap-3 pt-3">
         <Matrix
           t={t}
-          text={(range === "day" ? HOURLY[selHour] : week[day].v).toLocaleString("en-US")}
+          text={readoutText}
           dot={2.2}
           pitch={5.4}
-          label={`${(range === "day" ? HOURLY[selHour] : week[day].v).toLocaleString("en-US")} steps`}
+          label={readout === null ? "No steps reported" : `${readout.toLocaleString("en-US")} steps`}
           slots={6}
         />
         {/* unit for the big number (the hour lives in the pill below, so it
             is not repeated here); day name wins over BEST so the line has a
             bounded length and can never wrap. */}
         <p className="whitespace-nowrap pb-1 text-right font-mono text-[9px] tracking-[0.18em]" style={{ color: t.dim }}>
-          {range === "day" ? "STEPS" : day === today ? `${names[day]} · TODAY` : day === bestIdx ? `${names[day]} · BEST` : names[day]}
+          {unit}
         </p>
       </div>
       <div className="mt-2 min-h-[150px]">
@@ -495,30 +669,64 @@ function ActivityCard({ t, live }: { t: Tokens; live: StepsSnapshot | null }) {
             transition={{ duration: DUR.micro, ease: EASE_OUT }}
           >
             {range === "day" ? (
-              <HourlyDots t={t} selected={Math.min(selHour, nowHour)} onSelect={tick(selHour, (n) => setSelHour(Math.min(n, nowHour)))} nowHour={nowHour} peakHour={peakHour} />
+              hours ? (
+                <HourlyDots
+                  hours={hours}
+                  t={t}
+                  selected={Math.min(selHour, nowHour)}
+                  onSelect={tick(selHour, (n) => setSelHour(Math.min(n, nowHour)))}
+                  nowHour={nowHour}
+                  peakHour={peakHour}
+                />
+              ) : (
+                <div className="flex flex-col items-center justify-center gap-2 py-8 text-center">
+                  <p className="font-mono text-[10px] tracking-[0.16em]" style={{ color: t.dim }}>
+                    NO HOURLY REPORT TODAY
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setRange("week")}
+                    className="rounded-full px-3 py-1 font-mono text-[9px] tracking-[0.16em]"
+                    style={{ background: t.faint, color: t.ink }}
+                  >
+                    SEE THE WEEK
+                  </button>
+                </div>
+              )
             ) : (
               <WeekDots week={week} today={week.length - 1} selected={day} onSelect={tick(day, setSelDay)} t={t} />
             )}
           </motion.div>
         </AnimatePresence>
       </div>
-      <p className="mt-2.5 font-mono text-[10px] tracking-[0.14em]" style={{ color: t.dim }}>
-        {range === "day" ? `PEAK ${peakHour}:00 · ${peakSteps} STEPS · SO FAR` : `AVG ${avg} · BEST ${best}`}
+      <p className="mt-2.5 whitespace-nowrap font-mono text-[10px] tracking-[0.14em]" style={{ color: t.dim }}>
+        {range === "day"
+          ? hours
+            ? `PEAK ${peakHour}:00 · ${peakSteps} STEPS · SO FAR`
+            : "HOURLY NOT REPORTED"
+          : `AVG ${avg} · BEST ${best}`}
       </p>
-      <p className="mt-1 font-mono text-[9px] tracking-[0.18em]" style={{ color: t.dim }}>
-        {range === "day" ? "DRAG ACROSS THE CHART" : "TAP A DAY"}
-      </p>
+      {range === "day" ? (
+        <p className="mt-1 whitespace-nowrap font-mono text-[9px] tracking-[0.18em]" style={{ color: t.dim }}>
+          {hours ? "DRAG ACROSS THE CHART" : "SWITCH TO WEEK FOR REPORTED DAYS"}
+        </p>
+      ) : (
+        <div className="mt-1 flex flex-wrap items-baseline justify-between gap-x-2 gap-y-0.5 font-mono text-[9px] tracking-[0.14em]" style={{ color: t.dim }}>
+          <span className="whitespace-nowrap">{live && !sample ? `${live.reportedDays}/7 REPORTED` : "SAMPLE DATA"}</span>
+          <span className="whitespace-nowrap">{week.some((w) => w.v === null) ? "TAP A DAY · HOLLOW = NO REPORT" : "TAP A DAY"}</span>
+        </div>
+      )}
     </div>
   );
 }
 
 function Stat({ label, value, sub, t }: { label: string; value: string; sub?: string; t: Tokens }) {
   return (
-    <div className="rounded-[18px] p-3.5" style={{ background: t.card, border: `1px solid ${t.edge}`, boxShadow: t.pop }}>
-      <p className={SANS_LABEL} style={{ color: t.dim }}>
+    <div className="rounded-[18px] p-3" style={{ background: t.card, border: `1px solid ${t.edge}`, boxShadow: t.pop }}>
+      <p className="text-[13px] font-medium" style={{ color: t.dim }}>
         {label}
       </p>
-      <p className="mt-1 whitespace-nowrap font-mono text-[17px] tracking-tight" style={{ color: t.ink }}>
+      <p className="mt-1 whitespace-nowrap font-mono text-[16px] tracking-tight" style={{ color: t.ink }}>
         {value}
       </p>
       {sub ? (
@@ -544,7 +752,7 @@ function RouteMap({ reduced, t, privateZones, dist }: { reduced: boolean; t: Tok
   const [ends, setEnds] = useState({ sx: 44, sy: 200, ex: 96, ey: 200 });
 
   const FRACTIONS = [0.2, 0.4, 0.6, 0.8];
-  const SAMPLES = 160;
+  const SAMPLES = 240;
 
   useEffect(() => {
     const p = pathRef.current;
@@ -623,12 +831,12 @@ function RouteMap({ reduced, t, privateZones, dist }: { reduced: boolean; t: Tok
         )),
       )}
       {/* the plan: full route, dim */}
-      <path ref={pathRef} d={ROUTE} fill="none" stroke={t.faint} strokeWidth={5} strokeLinecap="round" strokeDasharray="0.1 9" />
+      <path ref={pathRef} d={ROUTE} fill="none" stroke={t.faint} strokeWidth={6} strokeLinecap="round" strokeDasharray="0.1 10" />
       {/* the truth: only what has actually been run */}
-      <path ref={travelledRef} d="" fill="none" stroke={t.dot} strokeWidth={5} strokeLinecap="round" strokeDasharray="0.1 9" />
-      {/* privacy mask: card ink erases the trace near home */}
-      <path ref={zoneARef} d="" fill="none" stroke={t.card} strokeWidth={7} strokeLinecap="round" strokeDasharray="0.1 9.5" />
-      <path ref={zoneBRef} d="" fill="none" stroke={t.card} strokeWidth={7} strokeLinecap="round" strokeDasharray="0.1 9.5" />
+      <path ref={travelledRef} d="" fill="none" stroke={t.dot} strokeOpacity={0.9} strokeWidth={6} strokeLinecap="round" strokeDasharray="0.1 10" />
+      {/* privacy mask: card ink erases the trace near home — same period so mask dots stay phase-aligned, no fringing */}
+      <path ref={zoneARef} d="" fill="none" stroke={t.card} strokeWidth={8} strokeLinecap="round" strokeDasharray="0.1 10" />
+      <path ref={zoneBRef} d="" fill="none" stroke={t.card} strokeWidth={8} strokeLinecap="round" strokeDasharray="0.1 10" />
       {marks.map((m, i) => (
         <g key={i} ref={(el) => { ringRefs.current[i] = el; }}>
           <circle cx={m.x} cy={m.y} r={7} fill={t.card} stroke={t.dot} strokeWidth={2} opacity={0.9} />
@@ -737,14 +945,16 @@ function DateCard({ weekday, dayMonth, t }: { weekday: string; dayMonth: string;
 
 /**
  * The pedometer widget: live today over live 7-day average, with the
- * device's own wording. Fixtures stand in only until the feed resolves.
+ * device's own wording. Fixtures stand in only until the feed resolves; a
+ * healthy feed with no report today shows a dash and NO REPORT, never a zero.
  */
-function PedoWidget({ onOpen, shellId, t, live }: { onOpen: () => void; shellId?: string; t: Tokens; live: StepsSnapshot | null }) {
+function PedoWidget({ onOpen, shellId, t, live, status }: { onOpen: () => void; shellId?: string; t: Tokens; live: StepsSnapshot | null; status: FeedStatus }) {
   const row = "flex items-baseline justify-between gap-2";
-  const today = live?.today ?? STEPS;
-  const avg = live ? Math.round(live.average7) : 7442;
+  const sample = status === "loading" || status === "offline";
+  const today = sample ? STEPS : live?.today ?? null;
+  const avg = live ? live.average7 : WEEK_AVG_NUM;
   const goal = live?.goal ?? GOAL;
-  const todayPct = Math.max(0, Math.round((today / goal) * 100));
+  const todayPct = today === null ? null : Math.max(0, Math.round((today / goal) * 100));
   const avgPct = Math.max(0, Math.round((avg / goal) * 100));
   return (
     <motion.button
@@ -753,22 +963,26 @@ function PedoWidget({ onOpen, shellId, t, live }: { onOpen: () => void; shellId?
       layoutId={shellId}
       whileTap={{ scale: 0.96 }}
       transition={{ duration: DUR.morph, ease: EASE_EMPHASIZED }}
-      aria-label={`Open pedometer details: ${today.toLocaleString("en-US")} total today, ${avg.toLocaleString("en-US")} seven-day average`}
+      aria-label={
+        today === null
+          ? `Open pedometer details: no steps reported today, ${avg.toLocaleString("en-US")} seven-day average`
+          : `Open pedometer details: ${today.toLocaleString("en-US")} total today, ${avg.toLocaleString("en-US")} seven-day average`
+      }
       className="block w-[184px] rounded-[28px] p-[15px] text-left"
       style={{ background: t.widget, border: `1px solid ${t.edge}`, boxShadow: t.pop }}
     >
-      <Matrix t={t} text={today.toLocaleString("en-US")} dot={1.8} pitch={4.1} label={`${today}`} slots={6} />
+      <Matrix t={t} text={today === null ? "--" : today.toLocaleString("en-US")} dot={1.8} pitch={4.1} label={today === null ? "No steps reported today" : `${today}`} slots={6} />
       <span className={`${row} mt-[7px]`}>
         <Matrix t={t} text="TOTAL TODAY" dot={0.7} pitch={1.6} />
-        <span className="font-mono text-[10px]" style={{ color: t.dim }}>
-          {todayPct}%
+        <span className="font-mono whitespace-nowrap text-[10px]" style={{ color: t.dim }}>
+          {today === null || todayPct === null ? "NO REPORT" : `${todayPct}%`}
         </span>
       </span>
       <span className="my-[11px] block h-px" style={{ background: t.faint }} aria-hidden />
       <Matrix t={t} text={avg.toLocaleString("en-US")} dot={1.8} pitch={4.1} label={`${avg}`} slots={6} />
       <span className={`${row} mt-[7px]`}>
         <Matrix t={t} text="7-DAY AVERAGE" dot={0.7} pitch={1.6} />
-        <span className="font-mono text-[10px]" style={{ color: t.dim }}>
+        <span className="font-mono whitespace-nowrap text-[10px]" style={{ color: t.dim }}>
           {avgPct}%
         </span>
       </span>
@@ -814,6 +1028,7 @@ function HomeScreen({
   shellId,
   t,
   live,
+  status,
   fresh,
 }: {
   now: { time: string; dateLine: string; weekday: string; dayMonth: string };
@@ -821,8 +1036,10 @@ function HomeScreen({
   shellId?: string;
   t: Tokens;
   live: StepsSnapshot | null;
+  status: FeedStatus;
   fresh: boolean;
 }) {
+  const note = homeNote(live, status, fresh);
   return (
     <motion.div
       className="absolute inset-0 flex flex-col"
@@ -835,10 +1052,10 @@ function HomeScreen({
         <ClockFace time={now.time} t={t} />
       </div>
       <div className="flex justify-end px-4 pt-3">
-        <PedoWidget onOpen={onOpen} shellId={shellId} t={t} live={live} />
+        <PedoWidget onOpen={onOpen} shellId={shellId} t={t} live={live} status={status} />
       </div>
-      <p className="px-4 pt-2 text-right font-mono text-[9px] tracking-[0.2em]" style={{ color: fresh ? t.dim : "transparent" }} aria-hidden={!fresh}>
-        {fresh ? "TAP THE WIDGET ↑" : "·"}
+      <p className="px-4 whitespace-nowrap pt-2 text-right font-mono text-[9px] tracking-[0.2em]" style={{ color: note === "·" ? "transparent" : t.dim }} aria-hidden={note === "·"}>
+        {note}
       </p>
       <Dock t={t} />
     </motion.div>
@@ -854,6 +1071,7 @@ function DetailScreen({
   shellId,
   t,
   live,
+  status,
 }: {
   onClose: () => void;
   onRun: () => void;
@@ -861,20 +1079,23 @@ function DetailScreen({
   shellId?: string;
   t: Tokens;
   live: StepsSnapshot | null;
+  status: FeedStatus;
 }) {
-  const target = live?.today ?? STEPS;
+  const sample = status === "loading" || status === "offline";
+  const target = sample ? STEPS : live?.today ?? null;
   const goal = live?.goal ?? GOAL;
-  const run = runFigures(live);
-  const steps = useCountUp(target, visits);
+  const run = runFigures(live, sample);
+  const steps = useCountUp(target ?? 0, visits);
   /* Tap-to-decode: the hero numerals flip to plain figures and back.
      Everything morphs on tap in this concept, so numerals do too. */
   const [decoded, setDecoded] = useState(false);
-  const pct = Math.max(0, Math.round((target / goal) * 100));
-  const toGo = Math.max(0, goal - target).toLocaleString("en-US");
+  const pct = target === null ? 0 : Math.max(0, Math.round((target / goal) * 100));
+  const toGo = Math.max(0, goal - (target ?? 0)).toLocaleString("en-US");
   const goalFmt = goal.toLocaleString("en-US");
-  const synced = live
-    ? new Date(live.updatedAt).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false })
-    : null;
+  const distance = target === null ? "—" : kmOf(target);
+  const energy = target === null ? "—" : String(Math.round((target * KCAL) / STEPS));
+  const active = target === null ? "—" : String(Math.round((target * ACTIVE_MIN) / STEPS));
+  const feedLine = syncLine(live, status);
   return (
     <motion.div
       layoutId={shellId}
@@ -895,7 +1116,7 @@ function DetailScreen({
             <ArrowLeft size={20} />
           </button>
         </div>
-        <h1 className="px-5 pt-2 text-[34px] leading-none" style={{ fontFamily: t.serif, color: t.ink }}>
+        <h1 className="px-5 pt-2 text-balance text-[34px] leading-none" style={{ fontFamily: t.serif, color: t.ink }}>
           Today
         </h1>
 
@@ -904,55 +1125,74 @@ function DetailScreen({
             <button
               type="button"
               onClick={() => setDecoded((d) => !d)}
+              disabled={target === null}
               aria-pressed={decoded}
-              aria-label={decoded ? "Show dot-matrix numerals" : `Show ${steps.toLocaleString("en-US")} as plain numbers`}
-              className="block w-full cursor-pointer text-left"
+              aria-label={
+                target === null
+                  ? "No steps reported today"
+                  : decoded
+                    ? "Show dot-matrix numerals"
+                    : `Show ${steps.toLocaleString("en-US")} as plain numbers`
+              }
+              className="block w-full cursor-pointer text-left disabled:cursor-default"
             >
-              {decoded ? (
+              {target !== null && decoded ? (
                 <p className="font-mono font-medium tabular-nums" style={{ color: t.ink, fontSize: 44, lineHeight: 1.15 }}>
                   {steps.toLocaleString("en-US")}
                 </p>
-              ) : (
+              ) : target !== null ? (
                 <Matrix t={t} text={steps.toLocaleString("en-US")} dot={3.2} pitch={8} label={`${steps} steps`} slots={6} />
+              ) : (
+                <Matrix t={t} text="--" dot={3.2} pitch={8} label="No steps reported today" slots={6} />
               )}
             </button>
             <div className="mt-3.5">
-              <DottedLine frac={target / goal} total={32} t={t} />
+              <DottedLine frac={target === null ? 0 : target / goal} total={32} t={t} />
             </div>
-            <p className="mt-2.5 font-mono text-[10px] tracking-[0.16em]" style={{ color: t.dim }}>
-              <span style={{ color: t.ink }}>{pct}%</span> OF {goalFmt} · {toGo} TO GO
+            <p className="mt-2.5 whitespace-nowrap font-mono text-[10px] tracking-[0.16em]" style={{ color: t.dim }}>
+              {target === null ? (
+                <>NO REPORT TODAY · {goalFmt} GOAL</>
+              ) : (
+                <>
+                  <span style={{ color: t.ink }}>{pct}%</span> OF {goalFmt} · {toGo} TO GO
+                </>
+              )}
             </p>
-            <p className="mt-1.5 font-mono text-[9px] tracking-[0.16em]" style={{ color: t.dim }}>
-              COUNTED ON-DEVICE · {synced ? `SYNCED ${synced}` : "SYNCED JUST NOW"}
+            <p className="mt-1.5 flex flex-wrap items-baseline gap-x-1.5 font-mono text-[9px] tracking-[0.16em]" style={{ color: t.dim }}>
+              {!sample && <span className="whitespace-nowrap">COUNTED ON-DEVICE ·</span>}
+              <span className="whitespace-nowrap">{feedLine}</span>
             </p>
           </div>
         </Rise>
 
-        <Rise index={1} className="grid grid-cols-3 gap-2.5 px-4 pt-2.5">
-          <Stat label="Distance" value={kmOf(target)} sub="KM" t={t} />
-          <Stat label="Energy" value={String(KCAL)} sub="KCAL" t={t} />
-          <Stat label="Active" value={String(ACTIVE_MIN)} sub="MIN" t={t} />
+        <Rise index={1} className="grid grid-cols-3 gap-2 px-4 pt-2.5">
+          <Stat label="Distance" value={distance} sub={target === null ? undefined : "KM"} t={t} />
+          <Stat label="Energy" value={energy} sub={target === null ? undefined : "KCAL"} t={t} />
+          <Stat label="Active" value={active} sub={target === null ? undefined : "MIN"} t={t} />
         </Rise>
 
         <Rise index={2} className="px-4 pt-2.5">
-          <ActivityCard t={t} live={live} />
+          <ActivityCard t={t} live={live} status={status} />
         </Rise>
 
         <Rise index={3} className="px-4 pt-2.5">
           <motion.button
             type="button"
-            onClick={onRun}
-            whileTap={{ scale: 0.98 }}
+            onClick={run ? onRun : undefined}
+            disabled={!run}
+            whileTap={run ? { scale: 0.98 } : undefined}
             className="flex w-full items-center justify-between rounded-[20px] px-5 py-4 font-mono text-[12px] tracking-[0.18em]"
-            style={{ background: t.ink, color: t.ground }}
-            aria-label="View morning run"
+            /* Fixed black in both themes — never a theme token. */
+            style={{ background: "#0A0A0A", color: "#FFFFFF", opacity: run ? 1 : 0.5 }}
+            aria-label={run ? "View morning run" : "No run reported today"}
+            aria-disabled={!run}
           >
-            <span>MORNING RUN · {run.dist} KM</span>
+            <span>{run ? `MORNING RUN · ${run.dist} KM` : "MORNING RUN · NO RUN TODAY"}</span>
             <span aria-hidden>
               <ArrowRight size={16} />
             </span>
           </motion.button>
-          <p className="pt-3 text-center font-mono text-[9px] tracking-[0.2em]" style={{ color: t.dim }}>
+          <p className="pt-3 whitespace-nowrap text-center font-mono text-[9px] tracking-[0.2em]" style={{ color: t.dim }}>
             EVERY STAT FREE · NOTHING UPLOADED
           </p>
         </Rise>
@@ -966,7 +1206,7 @@ function DetailScreen({
 function RunScreen({ onBack, onShare, privacy, setPrivacy, t, live }: { onBack: () => void; onShare: () => void; privacy: boolean; setPrivacy: (v: boolean) => void; t: Tokens; live: StepsSnapshot | null }) {
   const reduced = useReducedMotion();
   const max = Math.max(...ELEV);
-  const run = runFigures(live);
+  const run = runFigures(live) ?? { dist: RUN_DIST, time: RUN.time, kcal: RUN.kcal };
   const [decoded, setDecoded] = useState(false);
   return (
     <motion.div
@@ -993,13 +1233,13 @@ function RunScreen({ onBack, onShare, privacy, setPrivacy, t, live }: { onBack: 
             type="button"
             onClick={onShare}
             aria-label="Share this run"
-            className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full px-3 font-mono text-[10px] uppercase tracking-[0.22em]"
+            className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full px-3 font-mono whitespace-nowrap text-[10px] uppercase tracking-[0.22em]"
             style={{ color: t.dim }}
           >
             SHARE
           </button>
         </div>
-        <h1 className="px-5 pt-2 text-[34px] leading-none" style={{ fontFamily: t.serif, color: t.ink }}>
+        <h1 className="px-5 pt-2 text-balance text-[34px] leading-none" style={{ fontFamily: t.serif, color: t.ink }}>
           Morning run
         </h1>
         <p className={`${MICRO} px-5 pt-2`} style={{ color: t.dim }}>
@@ -1071,9 +1311,9 @@ function RunScreen({ onBack, onShare, privacy, setPrivacy, t, live }: { onBack: 
           </button>
         </Rise>
 
-        <Rise index={2} className="grid grid-cols-3 gap-2.5 px-4 pt-2.5">
+        <Rise index={2} className="grid grid-cols-3 gap-2 px-4 pt-2.5">
           <Stat label="Time" value={run.time} t={t} />
-          <Stat label="Pace" value={RUN.pace} sub="/KM" t={t} />
+          <Stat label="Pace" value={RUN_PACE} sub="/KM" t={t} />
           <Stat label="Energy" value={run.kcal} sub="KCAL" t={t} />
         </Rise>
 
@@ -1083,7 +1323,7 @@ function RunScreen({ onBack, onShare, privacy, setPrivacy, t, live }: { onBack: 
               <p className={SANS_LABEL} style={{ color: t.dim }}>
                 Elevation
               </p>
-              <p className="font-mono text-[10px]" style={{ color: t.dim }}>
+              <p className="font-mono whitespace-nowrap text-[10px]" style={{ color: t.dim }}>
                 +{ELEV_GAIN} M
               </p>
             </div>
@@ -1096,7 +1336,7 @@ function RunScreen({ onBack, onShare, privacy, setPrivacy, t, live }: { onBack: 
                 />
               ))}
             </div>
-            <p className="mt-2.5 font-mono text-[10px] tracking-[0.16em]" style={{ color: t.dim }}>
+            <p className="mt-2.5 whitespace-nowrap font-mono text-[10px] tracking-[0.16em]" style={{ color: t.dim }}>
               {ELEV_LINE}
             </p>
           </div>
@@ -1133,40 +1373,38 @@ type ShareTarget = "sheet" | "x" | "instagram" | "whatsapp" | "telegram";
 /** The artifact: what actually travels when a run is shared. Canvas-styled. */
 function ShareCard({ t, privateZones, canvas, run }: { t: Tokens; privateZones: boolean; canvas: ShareCanvas; run: { dist: string; time: string; kcal: string } }) {
   return (
-    <div className="relative overflow-hidden rounded-[18px] p-4" style={{ background: canvas.bg, boxShadow: t.pop }}>
+    <div className="relative overflow-hidden rounded-[18px] px-4 py-5" style={{ background: canvas.bg, boxShadow: t.pop }}>
       {canvas.image && (
         <>
           <div className="absolute inset-0" style={{ background: `url(${canvas.image}) center/cover` }} aria-hidden />
           <div className="absolute inset-0" style={{ background: "rgba(5,5,8,0.55)" }} aria-hidden />
         </>
       )}
-      <div className="relative">
-      <div className="flex items-center justify-between gap-2">
-        <p className="font-mono text-[9px] uppercase tracking-[0.22em]" style={{ color: canvas.dim }}>
-          Morning run · {RUN.when}{RUN_SAMPLE ? " · sample" : ""}
+      <div className="relative flex flex-col items-center text-center">
+      <p className="max-w-full text-balance font-mono text-[9px] uppercase tracking-[0.22em]" style={{ color: canvas.dim }}>
+        Morning run · {RUN.when}{RUN_SAMPLE ? " · sample" : ""}
+      </p>
+      {privateZones && (
+        <p className="mt-2 shrink-0 rounded-full px-2 py-0.5 font-mono text-[8px] tracking-[0.18em]" style={{ background: canvas.chip, color: canvas.onChip }}>
+          HOME HIDDEN
         </p>
-        {privateZones && (
-          <p className="shrink-0 rounded-full px-2 py-0.5 font-mono text-[8px] tracking-[0.18em]" style={{ background: canvas.chip, color: canvas.onChip }}>
-            HOME HIDDEN
-          </p>
-        )}
-      </div>
-      <div className="mt-1.5">
+      )}
+      <div className="mt-3 flex justify-center">
         <DotText text={run.dist} dot={3.4 * t.dotScale} pitch={10.5} color={canvas.dot} dimOpacity={canvas.image ? 0 : t.unlit} label={`${run.dist} kilometres`} />
       </div>
-      <p className="mt-1 font-mono text-[10px] tracking-[0.24em]" style={{ color: canvas.ink }}>KILOMETRES</p>
-      <svg viewBox="0 0 360 250" className="mt-2 h-auto w-full" role="img" aria-label="Run route">
+      <p className="mt-1 font-mono whitespace-nowrap text-[10px] tracking-[0.24em]" style={{ color: canvas.ink }}>KILOMETRES</p>
+      <svg viewBox="0 0 360 250" className="mt-4 h-auto w-full" role="img" aria-label="Run route">
         <path d={ROUTE} fill="none" stroke={canvas.dot} strokeOpacity={0.9} strokeWidth={6} strokeLinecap="round" strokeDasharray="0.1 10" />
         {/* hidden means hidden: endpoints are removed from the artifact, not ghosted */}
         <circle cx={44} cy={200} r={7} fill={canvas.dot} opacity={privateZones ? 0 : 1} />
         <circle cx={96} cy={200} r={7} fill={t.red} opacity={privateZones ? 0 : 1} />
       </svg>
-      <div className="mt-2 flex justify-between font-mono text-[11px]" style={{ color: canvas.ink }}>
+      <div className="mt-3 flex items-center justify-center gap-5 font-mono text-[11px]" style={{ color: canvas.ink }}>
         <span>{run.time}</span>
-        <span>{RUN.pace}/KM</span>
+        <span>{RUN_PACE}/KM</span>
         <span>{run.kcal} KCAL</span>
       </div>
-      <p className="mt-2.5 font-mono text-[8px] uppercase tracking-[0.26em]" style={{ color: canvas.dim }}>
+      <p className="mt-2.5 whitespace-nowrap font-mono text-[8px] uppercase tracking-[0.26em]" style={{ color: canvas.dim }}>
         Nothing · Pedometer
       </p>
       </div>
@@ -1175,7 +1413,7 @@ function ShareCard({ t, privateZones, canvas, run }: { t: Tokens; privateZones: 
 }
 
 function ShareSheet({ t, privacy, onPick, onClose, live }: { t: Tokens; privacy: boolean; onPick: (p: Exclude<ShareTarget, "sheet">) => void; onClose: () => void; live: StepsSnapshot | null }) {
-  const run = runFigures(live);
+  const run = runFigures(live) ?? { dist: RUN_DIST, time: RUN.time, kcal: RUN.kcal };
   /* Target tiles wear the platforms' real colors (Simple Icons hexes —
      no house tints. Instagram's real color is its brand gradient). */
   const targets = [
@@ -1221,10 +1459,10 @@ function ShareSheet({ t, privacy, onPick, onClose, live }: { t: Tokens; privacy:
         </p>
         <div className="mt-2.5 flex items-center gap-3 rounded-[18px] px-4 py-3.5" style={{ background: t.faint }}>
           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full" style={{ background: t.dot, color: t.ground }} aria-hidden>
-            <span className="font-mono text-[10px]">5K</span>
+            <span className="font-mono whitespace-nowrap text-[10px]">{run.dist}K</span>
           </span>
-          <p className="truncate text-[13px]" style={{ color: t.ink }}>
-            Morning run · {run.dist} km in {run.time}{privacy ? " · home hidden" : ""}{RUN_SAMPLE ? " · sample" : ""}
+          <p className="truncate text-[12px]" style={{ color: t.ink }}>
+            Morning run · {run.time}{privacy ? " · home hidden" : ""}{RUN_SAMPLE ? " · sample" : ""}
           </p>
         </div>
         <div className="mt-3 border-t pt-3" style={{ borderColor: t.faint }}>
@@ -1256,7 +1494,7 @@ function XPost({ t, privacy, canvas, run }: { t: Tokens; privacy: boolean; canva
         </span>
         <div>
           <p className="text-[13px] font-bold text-white">Pedometer</p>
-          <p className="font-mono text-[10px]" style={{ color: "rgba(255,255,255,0.5)" }}>
+          <p className="font-mono whitespace-nowrap text-[10px]" style={{ color: "rgba(255,255,255,0.5)" }}>
             Draft · not yet posted
           </p>
         </div>
@@ -1264,7 +1502,7 @@ function XPost({ t, privacy, canvas, run }: { t: Tokens; privacy: boolean; canva
       <div className="pt-2.5">
         <ShareCard t={t} canvas={canvas} privateZones={privacy} run={run} />
       </div>
-      <p className="pt-3 font-mono text-[10px]" style={{ color: "rgba(255,255,255,0.5)" }}>
+      <p className="pt-3 text-pretty font-mono text-[10px]" style={{ color: "rgba(255,255,255,0.5)" }}>
         Replies and reposts appear after posting
       </p>
     </div>
@@ -1292,7 +1530,7 @@ function WAPreview({ t, privacy, canvas, run }: { t: Tokens; privacy: boolean; c
         <div>
           <ShareCard t={t} canvas={canvas} privateZones={privacy} run={run} />
         </div>
-        <p className="px-1 text-right font-mono text-[9px]" style={{ color: "rgba(255,255,255,0.7)" }}>
+        <p className="px-1 whitespace-nowrap text-right font-mono text-[9px]" style={{ color: "rgba(255,255,255,0.7)" }}>
           {nowHM()} ✓✓
         </p>
       </div>
@@ -1310,7 +1548,7 @@ function TelegramPreview({ t, privacy, canvas, run }: { t: Tokens; privacy: bool
         <div>
           <ShareCard t={t} canvas={canvas} privateZones={privacy} run={run} />
         </div>
-        <p className="px-1 text-right font-mono text-[9px]" style={{ color: "rgba(255,255,255,0.8)" }}>
+        <p className="px-1 whitespace-nowrap text-right font-mono text-[9px]" style={{ color: "rgba(255,255,255,0.8)" }}>
           {nowHM()} ✓✓
         </p>
       </div>
@@ -1320,7 +1558,7 @@ function TelegramPreview({ t, privacy, canvas, run }: { t: Tokens; privacy: bool
 
 function SharePreview({ platform, privacy, t, onBack, live }: { platform: Exclude<ShareTarget, "sheet">; privacy: boolean; onBack: () => void; t: Tokens; live: StepsSnapshot | null }) {
   const reduced = useReducedMotion();
-  const run = runFigures(live);
+  const run = runFigures(live) ?? { dist: RUN_DIST, time: RUN.time, kcal: RUN.kcal };
   const [shared, setShared] = useState(false);
   const [unavailable, setUnavailable] = useState(false);
   useEffect(() => {
@@ -1364,7 +1602,7 @@ function SharePreview({ platform, privacy, t, onBack, live }: { platform: Exclud
     const svg = sharePosterSVG({
       dist: run.dist,
       time: run.time,
-      pace: RUN.pace,
+      pace: RUN_PACE,
       kcal: run.kcal,
       when: RUN.when,
       route: ROUTE,
@@ -1463,11 +1701,11 @@ function SharePreview({ platform, privacy, t, onBack, live }: { platform: Exclud
       </div>
       <div className="no-scrollbar flex-1 overflow-y-auto px-4 pb-8 pt-4">
         {unavailable && (
-          <p className="pb-3 text-[13px]" style={{ color: t.dim }}>
+          <p className="pb-3 text-pretty text-[13px]" style={{ color: t.dim }}>
             System share isn&apos;t available here — SAVE the PNG and attach it manually.
           </p>
         )}
-        <div className="flex items-center justify-between pb-3">
+        <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-2 pb-3">
           <p className={MICRO} style={{ color: t.dim }}>
             Canvas · {canvasId === "photo" ? "Photo" : canvas.label}
           </p>
@@ -1546,7 +1784,7 @@ export function PedometerExperience() {
   }, []);
   const reduced = useReducedMotion();
   const now = useNow();
-  const live = useLiveSteps();
+  const { live, status } = useLiveSteps();
   const t = THEMES[theme];
   const shellId = reduced ? undefined : "pedometer-shell";
 
@@ -1598,7 +1836,7 @@ export function PedometerExperience() {
                 type="button"
                 onClick={() => setTheme(m)}
                 aria-pressed={theme === m}
-                className="rounded-full border px-4 py-1.5 font-mono text-[10px] uppercase tracking-[0.22em]"
+                className="rounded-full border px-4 py-1.5 font-mono whitespace-nowrap text-[10px] uppercase tracking-[0.22em]"
                 style={{
                   borderColor: "rgba(255,255,255,0.2)",
                   background: theme === m ? "#FFFFFF" : "transparent",
@@ -1609,7 +1847,7 @@ export function PedometerExperience() {
               </button>
             ))}
           </div>
-          <p className="font-mono text-[10px] uppercase leading-relaxed tracking-[0.22em]" style={{ color: "rgba(255,255,255,0.55)" }}>
+          <p className="font-mono text-pretty text-[10px] uppercase leading-relaxed tracking-[0.22em]" style={{ color: "rgba(255,255,255,0.55)" }}>
             OS 4.1 tokens
           </p>
           <div className="flex min-h-6 items-start justify-start overflow-hidden">
@@ -1620,7 +1858,7 @@ export function PedometerExperience() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -6 }}
                 transition={{ duration: DUR.micro, ease: EASE_OUT }}
-                className="font-mono text-[10px] uppercase leading-relaxed tracking-[0.24em]"
+                className="font-mono text-pretty text-[10px] uppercase leading-relaxed tracking-[0.24em]"
                 style={{ color: "rgba(255,255,255,0.55)" }}
               >
                 {STAGE_LINE[stage]}
@@ -1662,7 +1900,7 @@ export function PedometerExperience() {
             two separate black volume keys left + black power right, body
             corners ~11% of width. True size default (382px); shorter
             viewports shrink the whole device. Desktop preview only. */}
-        <div className="relative h-dvh w-full sm:aspect-[76.32/161.74] sm:h-auto sm:w-[min(382px,calc((100dvh-48px)*0.4719),calc(100vw-48px))]">
+        <div className="relative h-dvh w-full sm:aspect-[76.32/161.74] sm:h-auto sm:w-[max(320px,min(382px,calc((100dvh-48px)*0.4719),calc(100vw-48px)))]">
           <div className="absolute -left-[4px] top-[30%] hidden h-[7%] w-[4px] rounded-l-md sm:block" style={{ background: "#141416", boxShadow: "inset 0 0 1px rgba(255,255,255,0.25)" }} aria-hidden />
           <div className="absolute -left-[4px] top-[39%] hidden h-[7%] w-[4px] rounded-l-md sm:block" style={{ background: "#141416", boxShadow: "inset 0 0 1px rgba(255,255,255,0.25)" }} aria-hidden />
           <div className="absolute -right-[4px] top-[34%] hidden h-[8%] w-[4px] rounded-r-md sm:block" style={{ background: "#141416", boxShadow: "inset 0 0 1px rgba(255,255,255,0.25)" }} aria-hidden />
@@ -1689,9 +1927,9 @@ export function PedometerExperience() {
                 {/* glass: barely-there diagonal sheen for the photoreal read, never over content */}
                 <div className="pointer-events-none absolute inset-0 z-30 hidden sm:block" aria-hidden style={{ background: "linear-gradient(115deg, rgba(255,255,255,0.06) 0%, transparent 28%)" }} />
                 <AnimatePresence>
-                  {stage === "home" && <HomeScreen key="home" now={now} onOpen={open} shellId={shellId} t={t} live={live} fresh={visits === 0} />}
+                  {stage === "home" && <HomeScreen key="home" now={now} onOpen={open} shellId={shellId} t={t} live={live} status={status} fresh={visits === 0} />}
                   {stage === "detail" && (
-                    <DetailScreen key="detail" onClose={() => setStage("home")} onRun={() => setStage("run")} visits={visits} shellId={shellId} t={t} live={live} />
+                    <DetailScreen key="detail" onClose={() => setStage("home")} onRun={() => setStage("run")} visits={visits} shellId={shellId} t={t} live={live} status={status} />
                   )}
                 </AnimatePresence>
                 <AnimatePresence>
