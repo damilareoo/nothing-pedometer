@@ -380,6 +380,26 @@ function Matrix({ t, text, dot = 2.4, pitch = 8, label, slots = 0 }: { t: Tokens
   return <DotText text={text} dot={dot * t.dotScale} pitch={pitch} color={t.dot} dimOpacity={t.unlit} label={label} slots={slots} />;
 }
 
+/**
+ * One back control for all three headers. The 36px disc keeps the phone's
+ * top rhythm, but its optical padding is pulled back so the arrow's left tip
+ * sits on the same 20px line as the screen titles; the 4px halo brings the
+ * touch target to 44px without moving the glyph.
+ */
+function BackButton({ label, onBack, t }: { label: string; onBack: () => void; t: Tokens }) {
+  return (
+    <button
+      type="button"
+      onClick={onBack}
+      aria-label={label}
+      className="relative -ml-3 flex h-9 w-9 items-center justify-center rounded-full after:absolute after:-inset-1 after:content-['']"
+      style={{ color: t.ink }}
+    >
+      <ArrowLeft size={20} />
+    </button>
+  );
+}
+
 /** Staged arrival: content settles in just after the sheet morph lands. */
 function Rise({ index = 0, className, children }: { index?: number; className?: string; children: React.ReactNode }) {
   const reduced = useReducedMotion();
@@ -1106,15 +1126,7 @@ function DetailScreen({
       <div className="no-scrollbar flex-1 overflow-y-auto pb-9">
         {/* base pt-5 is the phone — untouched. */}
         <div className="flex items-center gap-4 px-5 pt-5">
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Back to home screen"
-            className="flex h-9 w-9 items-center justify-center rounded-full"
-            style={{ color: t.ink }}
-          >
-            <ArrowLeft size={20} />
-          </button>
+          <BackButton label="Back to home screen" onBack={onClose} t={t} />
         </div>
         <h1 className="px-5 pt-2 text-balance text-[34px] leading-none" style={{ fontFamily: t.serif, color: t.ink }}>
           Today
@@ -1220,15 +1232,7 @@ function RunScreen({ onBack, onShare, privacy, setPrivacy, t, live }: { onBack: 
       <div className="no-scrollbar flex-1 overflow-y-auto pb-9">
         {/* base pt-5 is the phone — untouched. */}
         <div className="flex items-center justify-between px-5 pt-5">
-          <button
-            type="button"
-            onClick={onBack}
-            aria-label="Back to step details"
-            className="flex h-9 w-9 items-center justify-center rounded-full"
-            style={{ color: t.ink }}
-          >
-            <ArrowLeft size={20} />
-          </button>
+          <BackButton label="Back to step details" onBack={onBack} t={t} />
           <button
             type="button"
             onClick={onShare}
@@ -1667,15 +1671,7 @@ function SharePreview({ platform, privacy, t, onBack, live }: { platform: Exclud
     >
       {/* base pt-5 is the phone — untouched. */}
       <div className="flex items-center justify-between px-5 pt-5">
-        <button
-          type="button"
-          onClick={onBack}
-          aria-label="Back to share options"
-          className="flex h-9 w-9 items-center justify-center rounded-full"
-          style={{ color: t.ink }}
-        >
-          <ArrowLeft size={20} />
-        </button>
+        <BackButton label="Back to share options" onBack={onBack} t={t} />
         <p className={MICRO} style={{ color: t.dim }}>
           {names[platform]}
         </p>

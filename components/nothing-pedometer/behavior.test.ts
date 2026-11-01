@@ -142,6 +142,12 @@ describe("reduced motion", () => {
     expect(src).not.toContain("Chevron");
   });
 
+  it("puts every back arrow on the title line with a 44px reach", () => {
+    expect(src.match(/<BackButton /g) ?? []).toHaveLength(3);
+    expect(src).toContain("-ml-3");
+    expect(src).toContain("after:-inset-1");
+  });
+
   it("parks the hidden-zone label off the route, never overlapping it", () => {
     expect(src).toContain("HOME ZONE HIDDEN");
     expect(src).toContain('textAnchor="end"');
